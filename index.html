@@ -495,15 +495,15 @@
     <button class="btn primary" id="saveCal">Guardar calendario</button>
   </div>
 
-  <h3>Aviso por la mañana</h3>
-  <p>Una notificación cada día con el tiempo, si va a llover y tus planes.</p>
+  <h3>Avisos</h3>
+  <p>Solo te aviso cuando haga falta: <b>media hora antes de que llueva</b>, y <b>la noche antes</b> si al día siguiente baja mucho la temperatura.</p>
   <div class="push-row">
-    <label for="pushHour">Hora del aviso</label>
-    <input type="time" id="pushHour" value="08:00">
+    <label for="pushHour">Aviso de frío a las</label>
+    <input type="time" id="pushHour" value="21:00">
   </div>
   <div class="status" id="pushStatus"></div>
   <div class="row">
-    <button class="btn primary" id="pushToggle">Activar aviso</button>
+    <button class="btn primary" id="pushToggle">Activar avisos</button>
     <button class="btn" id="pushTest" hidden>Enviar prueba</button>
   </div>
 
@@ -1132,15 +1132,15 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
       if (!sub) { savePush({ ...p, on: false }); paintPush(); return; }
       await pushPost("subscribe", {
         subscription: sub.toJSON(), lat: lastLoc.lat, lon: lastLoc.lon, place: localName(),
-        tz: Intl.DateTimeFormat().resolvedOptions().timeZone, hour: p.hour || "08:00", calendar: readLinks(),
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone, coldHour: p.coldHour || "21:00", calendar: readLinks(),
       });
     } catch {}
   }
 
   function paintPush() {
     const p = readPush();
-    $("pushHour").value = p.hour || "08:00";
-    $("pushToggle").textContent = p.on ? "Desactivar aviso" : "Activar aviso";
+    $("pushHour").value = p.coldHour || "21:00";
+    $("pushToggle").textContent = p.on ? "Desactivar avisos" : "Activar avisos";
     $("pushToggle").classList.toggle("primary", !p.on);
     $("pushTest").hidden = !p.on;
     if (!pushSupported()) {
@@ -1148,7 +1148,7 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
         ? "Para recibir avisos, abre Mi Día desde el icono de la pantalla de inicio (no desde Safari)."
         : "Este navegador no permite avisos.", true);
       $("pushToggle").disabled = true;
-    } else pushStatus(p.on ? `Aviso activado a las ${p.hour || "08:00"}.` : "");
+    } else pushStatus(p.on ? "Avisos activados." : "");
   }
 
   $("pushToggle").onclick = async () => {
@@ -1159,7 +1159,7 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
         if (sub) { await pushPost("unsubscribe", { endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe(); }
         savePush({ ...p, on: false });
         paintPush();
-        pushStatus("Aviso desactivado.");
+        pushStatus("Avisos desactivados.");
         return;
       }
       pushStatus("Activando…");
@@ -1168,14 +1168,14 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
       if (!key) throw new Error("Falta preparar el puente (KV)");
       const reg = await navigator.serviceWorker.ready;
       await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(key) });
-      savePush({ on: true, hour: $("pushHour").value || "08:00" });
+      savePush({ on: true, coldHour: $("pushHour").value || "21:00" });
       await syncPush();
       paintPush();
     } catch (e) {
-      pushStatus("No he podido activar el aviso: " + e.message, true);
+      pushStatus("No he podido activar los avisos: " + e.message, true);
     }
   };
-  $("pushHour").onchange = () => { const p = readPush(); savePush({ ...p, hour: $("pushHour").value || "08:00" }); syncPush(); paintPush(); };
+  $("pushHour").onchange = () => { const p = readPush(); savePush({ ...p, coldHour: $("pushHour").value || "21:00" }); syncPush(); paintPush(); };
   $("pushTest").onclick = async () => {
     try {
       pushStatus("Enviando…");

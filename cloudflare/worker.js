@@ -3,12 +3,12 @@
 // GET  /?url=<enlace>  → lee un calendario público de iCloud (iCloud no deja que una web lo lea directamente).
 // POST /consejo        → genera sugerencias para el día con Workers AI (necesita el enlace "AI" en Settings → Bindings).
 // POST /noticias       → lee titulares de Google Noticias y El País y la IA hace el briefing del día.
-// /push/...            → aviso de la mañana en el iPhone. Necesita:
+// /push/...            → avisos en el iPhone (30 min antes de que llueva, y la noche antes si mañana hace frío). Necesita:
 //                          · un espacio KV enlazado como "MIDIA" (Settings → Bindings → KV namespace)
 //                          · un Cron Trigger "*/15 * * * *" (Settings → Triggers)
 //
 // Lo único que se guarda (en tu KV) es lo necesario para el aviso: la suscripción del móvil,
-// la ubicación, la hora del aviso y los enlaces de calendario.
+// la ubicación, la hora del aviso de frío y los enlaces de calendario.
 
 const ALLOWED_ORIGINS = ["https://pablo06casta.github.io", "http://localhost:8766"];
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
@@ -35,20 +35,18 @@ export default {
     return new Response("Método no permitido", { status: 405, headers: cors });
   },
 
-  // Cada 15 minutos: envía el aviso a quien le toque.
+  // Cada 15 minutos: mira si a alguien le toca un aviso de lluvia o de frío.
   async scheduled(event, env, ctx) {
     if (!env.MIDIA) return;
     const { keys } = await env.MIDIA.list({ prefix: "sub:" });
     for (const { name } of keys) {
       const sub = await env.MIDIA.get(name, "json");
       if (!sub) continue;
-      const local = localNow(sub.tz);
-      const [h, m] = sub.hour.split(":").map(Number);
-      const due = local.minutes >= h * 60 + m && local.minutes < h * 60 + m + 120;
-      if (!due || sub.last === local.date) continue;
-      const status = await sendMorning(env, sub).catch(() => 0);
-      if (status === 404 || status === 410) { await env.MIDIA.delete(name); continue; }
-      if (status >= 200 && status < 300) await env.MIDIA.put(name, JSON.stringify({ ...sub, last: local.date }));
+      try {
+        const next = await checkAlerts(env, sub);
+        if (next === "gone") await env.MIDIA.delete(name);
+        else if (next) await env.MIDIA.put(name, JSON.stringify(next));
+      } catch {}
     }
   },
 };
@@ -246,9 +244,10 @@ async function push(request, env, origin, cors, path) {
       lat: +body.lat, lon: +body.lon,
       place: String(body.place || "").slice(0, 60),
       tz: String(body.tz || "Europe/Madrid").slice(0, 60),
-      hour: /^\d{2}:\d{2}$/.test(body.hour) ? body.hour : "08:00",
+      coldHour: /^\d{2}:\d{2}$/.test(body.coldHour) ? body.coldHour : "21:00",
       calendar: (Array.isArray(body.calendar) ? body.calendar : []).slice(0, 10).map(String),
-      last: prev.last || "",
+      lastRain: prev.lastRain || 0,
+      lastCold: prev.lastCold || "",
     };
     if (!sub.subscription?.keys?.p256dh || !Number.isFinite(sub.lat)) return json({ error: "datos incompletos" }, 400);
     await env.MIDIA.put(id, JSON.stringify(sub));
@@ -257,7 +256,7 @@ async function push(request, env, origin, cors, path) {
   if (path === "/push/test") {
     const sub = await env.MIDIA.get(id, "json");
     if (!sub) return json({ error: "no suscrito" }, 404);
-    const status = await sendMorning(env, sub);
+    const status = await sendPush(env, sub.subscription, JSON.stringify(await testText(sub)));
     return json({ ok: status >= 200 && status < 300, status });
   }
   return json({ error: "ruta" }, 404);
@@ -270,55 +269,101 @@ function localNow(tz) {
   return { date: `${p.year}-${p.month}-${p.day}`, y: +p.year, m: +p.month - 1, d: +p.day, minutes: +p.hour * 60 + +p.minute, hour: +p.hour };
 }
 
-const WMO_TEXT = {
-  0: "despejado", 1: "casi despejado", 2: "con algunas nubes", 3: "nublado", 45: "con niebla", 48: "con niebla",
-  51: "con llovizna", 53: "con llovizna", 55: "con llovizna", 56: "con llovizna helada", 57: "con llovizna helada",
-  61: "con lluvia débil", 63: "con lluvia", 65: "con lluvia fuerte", 66: "con lluvia helada", 67: "con lluvia helada",
-  71: "con nieve", 73: "con nieve", 75: "con nieve fuerte", 77: "con granizo fino", 80: "con chubascos", 81: "con chubascos",
-  82: "con chubascos fuertes", 85: "con nieve", 86: "con nieve", 95: "con tormenta", 96: "con tormenta y granizo", 99: "con tormenta y granizo",
-};
 
-async function morningText(sub) {
+const RAIN_EVERY = 3 * 3600 * 1000; // como mucho un aviso de lluvia cada 3 horas
+const WET = 0.1;                      // mm en 15 minutos
+
+// Devuelve la suscripción actualizada si ha enviado algo, "gone" si el móvil ya no existe, o null.
+async function checkAlerts(env, sub) {
   const local = localNow(sub.tz);
-  const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${sub.lat}&longitude=${sub.lon}` +
-    `&current=apparent_temperature&hourly=precipitation_probability` +
-    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max` +
-    `&timezone=${encodeURIComponent(sub.tz)}&forecast_days=1`).then((r) => r.json());
-  const D = w.daily, H = w.hourly;
-  const parts = [`Hoy ${Math.round(D.temperature_2m_max[0])}° y ${Math.round(D.temperature_2m_min[0])}°, ${WMO_TEXT[D.weather_code[0]] || "variable"}.`];
-
-  const rainI = H.time.findIndex((t, i) => +t.slice(11, 13) >= local.hour && (H.precipitation_probability[i] ?? 0) >= 40);
-  let umbrella = false;
-  if (rainI >= 0) { parts.push(`Lluvia a las ${H.time[rainI].slice(11, 16)} (${H.precipitation_probability[rainI]}%).`); umbrella = true; }
-  else parts.push(local.hour <= 9 ? "Sin lluvia." : "Sin lluvia el resto del día.");
-
-  // agenda de hoy (en la hora local del usuario)
-  if (sub.calendar.length) {
-    try {
-      const texts = await Promise.all(sub.calendar.map((l) => icloudText(l).catch(() => "")));
-      const evs = texts.filter(Boolean).flatMap((t) => MiDiaCal.parseICS(t, sub.tz));
-      const from = new Date(Date.UTC(local.y, local.m, local.d));
-      const to = new Date(from.getTime() + 86400000);
-      const nowWall = new Date(from.getTime() + local.minutes * 60000);
-      const today = MiDiaCal.expand(evs, from, to).filter((e) => e.allDay || e.end > nowWall);
-      if (today.length) {
-        const list = today.slice(0, 3).map((e) => e.allDay ? e.title : `${e.title} ${e.start.toISOString().slice(11, 16)}`);
-        parts.push(`Tienes: ${list.join(", ")}${today.length > 3 ? ` y ${today.length - 3} más` : ""}.`);
-      } else parts.push("Agenda libre.");
-    } catch {}
+  let changed = null;
+  const send = async (msg) => {
+    const status = await sendPush(env, sub.subscription, JSON.stringify({ ...msg, url: "./" }));
+    if (status === 404 || status === 410) throw "gone";
+    return status >= 200 && status < 300;
+  };
+  try {
+    // 1) lluvia en unos 30 minutos (solo de 7:00 a 23:00)
+    if (local.hour >= 7 && local.hour < 23 && Date.now() - (sub.lastRain || 0) > RAIN_EVERY) {
+      const msg = await rainAlert(sub);
+      if (msg && await send(msg)) changed = { ...(changed || sub), lastRain: Date.now() };
+    }
+    // 2) la noche antes: ¿mañana baja mucho la temperatura?
+    const [h, m] = (sub.coldHour || "21:00").split(":").map(Number);
+    const inWindow = local.minutes >= h * 60 + m && local.minutes < h * 60 + m + 120;
+    if (inWindow && sub.lastCold !== local.date) {
+      const msg = await coldAlert(sub);
+      if (msg) await send(msg);
+      changed = { ...(changed || sub), lastCold: local.date };
+    }
+  } catch (e) {
+    if (e === "gone") return "gone";
+    throw e;
   }
+  return changed;
+}
 
-  const feels = w.current?.apparent_temperature ?? D.temperature_2m_min[0];
-  const tips = [];
-  if (umbrella) tips.push("lleva paraguas");
-  if (feels < 5) tips.push("abrígate bien");
-  else if (feels < 12) tips.push("coge una chaqueta");
-  else if (feels < 18) tips.push("lleva algo de abrigo");
-  if ((D.uv_index_max?.[0] ?? 0) >= 6) tips.push("ponte protector solar");
-  if (tips.length) { const t = tips.join(", "); parts.push(t[0].toUpperCase() + t.slice(1) + "."); }
+async function forecast(sub, params) {
+  return fetch(`https://api.open-meteo.com/v1/forecast?latitude=${sub.lat}&longitude=${sub.lon}&${params}&timezone=${encodeURIComponent(sub.tz)}`).then((r) => r.json());
+}
 
-  const hello = local.hour < 13 ? "Buenos días" : local.hour < 21 ? "Buenas tardes" : "Buenas noches";
-  return { title: `${hello}${sub.place ? ` · ${sub.place}` : ""}`, body: parts.join(" ") };
+// "Empieza a llover en unos 30 min": seco ahora y en 15 min, y lluvia a los 30–45 min.
+async function rainAlert(sub) {
+  const w = await forecast(sub, "minutely_15=precipitation&forecast_minutely_15=4");
+  const p = w.minutely_15?.precipitation || [];
+  if (p.length < 4 || p[0] >= WET || p[1] >= WET) return null;
+  const k = p[2] >= WET ? 2 : p[3] >= WET ? 3 : -1;
+  if (k < 0) return null;
+  const startsAt = new Date(w.minutely_15.time[k] + "Z").getTime() - (w.utc_offset_seconds || 0) * 1000;
+  const mins = Math.max(15, Math.round((startsAt - Date.now()) / 300000) * 5);
+  const mmh = Math.max(p[2], p[3]) * 4;
+  const kind = mmh < 2 ? "lluvia débil" : mmh < 8 ? "lluvia moderada" : "lluvia fuerte";
+  return {
+    title: `Va a llover${sub.place ? ` en ${sub.place}` : ""}`,
+    body: `Empieza a llover en unos ${mins} min (${kind}). Si vas a salir, coge el paraguas.`,
+  };
+}
+
+// La noche antes: mañana mínima muy baja o bajada fuerte respecto a hoy.
+async function coldAlert(sub) {
+  const w = await forecast(sub, "daily=temperature_2m_max,temperature_2m_min,apparent_temperature_min&forecast_days=2");
+  const D = w.daily;
+  const [maxT, minT] = [D.temperature_2m_max, D.temperature_2m_min].map((a) => a.map(Math.round));
+  const feels = Math.round(D.apparent_temperature_min?.[1] ?? minT[1]);
+  const dropMin = minT[0] - minT[1], dropMax = maxT[0] - maxT[1];
+  const veryCold = minT[1] <= 3 || feels <= 0;
+  if (!veryCold && dropMin < 5 && dropMax < 5) return null;
+
+  const parts = [`Mañana ${minT[1]}° a ${maxT[1]}° (hoy ${minT[0]}° a ${maxT[0]}°).`];
+  if (dropMax >= 5 || dropMin >= 5) parts.push(`Hará unos ${Math.max(dropMin, dropMax)}° menos que hoy.`);
+  if (feels < minT[1] - 1) parts.push(`Sensación de ${feels}° a primera hora.`);
+  const first = await firstPlanTomorrow(sub);
+  if (first) parts.push(`Tu primer plan: ${first}.`);
+  parts.push(minT[1] <= 3 ? "Saca el abrigo gordo, guantes y bufanda." : "Deja preparado algo de abrigo.");
+  return { title: veryCold ? "Mañana hace mucho frío" : "Mañana bajan las temperaturas", body: parts.join(" ") };
+}
+
+async function firstPlanTomorrow(sub) {
+  if (!sub.calendar?.length) return "";
+  try {
+    const local = localNow(sub.tz);
+    const texts = await Promise.all(sub.calendar.map((l) => icloudText(l).catch(() => "")));
+    const evs = texts.filter(Boolean).flatMap((t) => MiDiaCal.parseICS(t, sub.tz));
+    const from = new Date(Date.UTC(local.y, local.m, local.d + 1));
+    const e = MiDiaCal.expand(evs, from, new Date(from.getTime() + 86400000)).find((x) => !x.allDay);
+    return e ? `${e.title} a las ${e.start.toISOString().slice(11, 16)}` : "";
+  } catch {
+    return "";
+  }
+}
+
+async function testText(sub) {
+  const [rain, cold] = await Promise.all([rainAlert(sub).catch(() => null), coldAlert(sub).catch(() => null)]);
+  return {
+    title: "Avisos de Mi Día activados",
+    body: rain ? rain.body : cold ? cold.body
+      : `Te avisaré media hora antes de que llueva y a las ${sub.coldHour || "21:00"} si mañana baja mucho la temperatura.`,
+  };
 }
 
 async function icloudText(link) {
@@ -326,11 +371,6 @@ async function icloudText(link) {
   if (!/^p\d+-caldav\.icloud\.com$/.test(u.hostname) || !u.pathname.startsWith("/published/")) return "";
   const r = await fetch(u.toString(), { headers: { "User-Agent": "MiDia/1.0" } });
   return r.ok ? r.text() : "";
-}
-
-async function sendMorning(env, sub) {
-  const msg = await morningText(sub);
-  return sendPush(env, sub.subscription, JSON.stringify({ ...msg, url: "./" }));
 }
 
 /* ---------- Web Push: claves VAPID y cifrado (RFC 8291 / RFC 8292) ---------- */

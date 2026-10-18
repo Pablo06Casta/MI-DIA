@@ -303,10 +303,10 @@
 
   /* pixel pets: Alvin the cat and Zogli the Yorkshire */
   .pet-layer { position: absolute; left: 0; right: 0; bottom: 9%; height: 0; z-index: 1; pointer-events: none; }
-  .pet { position: absolute; bottom: 0; left: 0; width: 48px; height: 48px; pointer-events: auto; cursor: pointer; -webkit-user-select: none; user-select: none; }
+  .pet { position: absolute; bottom: 0; left: 0; width: 48px; height: 48px; pointer-events: none; cursor: pointer; -webkit-user-select: none; user-select: none; }
   .pet-flip { position: absolute; inset: 0; transform-origin: 50% 100%; }
   .pet.left .pet-flip { transform: scaleX(-1); }
-  .pet-sprite { position: absolute; left: 0; bottom: 0; width: 48px; height: 45px; transform-origin: 50% 100%; }
+  .pet-sprite { pointer-events: auto; position: absolute; left: 0; bottom: 0; width: 48px; height: 45px; transform-origin: 50% 100%; }
   .pet-sprite svg, .pet-umbrella svg { display: block; width: 100%; height: 100%; image-rendering: pixelated; shape-rendering: crispEdges; }
   .pet-shadow { position: absolute; left: 6px; right: 6px; bottom: -3px; height: 5px; border-radius: 50%; background: rgba(0,0,0,.18); transition: transform .2s; }
   .pet.walking .pet-sprite { animation: petWalk .42s ease-in-out infinite; }
@@ -336,6 +336,7 @@
     padding: 6px 10px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.15);
     transition: opacity .2s, transform .2s; pointer-events: none;
   }
+  .pet-name { display: block; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #6a7a8c; margin-bottom: 1px; }
   .pet-bubble::after { content: ""; position: absolute; left: calc(50% + var(--tail, 0px)); bottom: -5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: #fff; }
   .pet-bubble.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
   .pet.rainy .pet-bubble { bottom: 74px; }
@@ -909,16 +910,17 @@
       },
     },
     {
-      name: "Zogli", what: "el Yorkshire", sound: "¡Guau!", x: 200, speed: 34, depth: -4, w: 50, h: 70,
+      name: "Zogli", what: "el Yorkshire", sound: "¡Guau!", x: 200, speed: 34, depth: -4, w: 50, h: 71,
       // your own picture of Zogli; eyes in % of the picture (to close them or add sunglasses)
-      image: "pets/zogli.png", eyes: [[44.2, 39.9], [69.1, 39.3]],
+      image: "pets/zogli.png", eyes: [[43.8, 38.5], [69.8, 38.5]],
       lines: {
-        night: ["Zzz… guau", "Grr… zzz", "Guau… a dormir"],
-        rain: ["¡Guau! ¡Paraguas!", "No me quiero mojar el pelo", "¡Guau, cuánta agua!"],
-        snow: ["¡Guau! ¡Nieve!", "¡A jugar con la nieve!"],
-        hot: ["Guau, qué calor…", "¿Me das agüita?"],
-        cold: ["Guau… tiemblo de frío", "¿Me pones el abrigo?"],
-        any: ["¡Guau!", "¡Guau guau!", "¿Paseo? ¡Guau!", "¡Hola! Soy Zogli", "¿Jugamos a la pelota?"],
+        night: ["Zzz… guau", "Grr… zzz", "Guau… a dormir", "Soñando con huesos… zzz"],
+        rain: ["¡Guau! ¡Paraguas!", "No me quiero mojar el pelo", "¡Guau, cuánta agua!", "Hoy paseo cortito, ¿vale?", "¡Charcos! ¡Guau!"],
+        snow: ["¡Guau! ¡Nieve!", "¡A jugar con la nieve!", "¡Guau! ¡Tengo frío en las patitas!"],
+        hot: ["Guau, qué calor…", "¿Me das agüita?", "Busco sombrita, guau", "Jadeo… guau"],
+        cold: ["Guau… tiemblo de frío", "¿Me pones el abrigo?", "Guau, a casa calentito"],
+        any: ["¡Guau!", "¡Guau guau!", "¿Paseo? ¡Guau!", "¡Hola! Soy Zogli", "¿Jugamos a la pelota?",
+          "¿Me rascas la barriga?", "¡Guau! ¿Tienes una galletita?", "¡Te quiero, guau!", "¡Guau! ¿Vamos al parque?"],
       },
     },
   ];
@@ -992,7 +994,7 @@
 
   function petSay(pet, text) {
     const b = pet.bubble;
-    b.textContent = text;
+    b.innerHTML = `<b class="pet-name">${pet.name}</b>${esc(text)}`;
     // keep the bubble inside the screen; the little tail still points at the pet
     const W = pet.el.parentElement.clientWidth, bw = b.offsetWidth, center = pet.x + pet.w / 2;
     const shift = Math.min(W - 8 - bw / 2, Math.max(8 + bw / 2, center)) - center;

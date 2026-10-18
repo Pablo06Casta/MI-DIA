@@ -344,7 +344,7 @@
       <div class="tip" id="tip" hidden>
         <div class="tip-head">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
-          <span id="tipLabel">Sugerencias</span>
+          <span id="tipLabel">Qué ponerte</span>
         </div>
         <div id="tipText"></div>
       </div>
@@ -754,13 +754,21 @@
 
   /* ---------- AI suggestions (Workers AI, through the Cloudflare bridge) ---------- */
   const AI_URL = CAL_PROXY + "consejo";
-  const AI_STORE = "midia:ai";
+  const AI_STORE = "midia:ai2";
+  // What the AI is asked to do. Changing this only needs a commit + push.
+  const AI_SYSTEM = `Eres el asistente de la app "Mi Día" y tu tema es la ropa. Con el tiempo de hoy y la agenda del usuario, da 3 sugerencias concretas sobre qué ponerse.
+- Español de España, tono cercano y directo, máximo 20 palabras por sugerencia.
+- Usa la sensación térmica y cómo cambia la temperatura a lo largo del día: capas por la mañana, qué quitarse a mediodía, qué llevar al caer la tarde tras la puesta de sol.
+- Si va a llover di a qué hora y qué llevar (paraguas, chubasquero, calzado que no cale). Si hay viento, cortavientos; si el UV es alto, gafas de sol, gorra y crema.
+- Si hay planes en la agenda, adapta la ropa a cada uno (deporte, trabajo, cena, viaje) y a la hora a la que son.
+- Nombra prendas concretas. No repitas datos sin aportar, no inventes planes y no uses emojis.
+Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.`;
   let aiTimer = null, aiBusy = false;
   const readAI = () => { try { return JSON.parse(localStorage.getItem(AI_STORE)); } catch { return null; } };
 
   function showTips(tips, fromAI) {
     $("tipText").innerHTML = tips.map((t) => `<div class="tip-item">${esc(t)}</div>`).join("");
-    $("tipLabel").textContent = fromAI ? "Sugerencias · IA" : "Sugerencias";
+    $("tipLabel").textContent = fromAI ? "Qué ponerte · IA" : "Qué ponerte";
   }
 
   // Everything the AI needs to know about the day, as plain text.
@@ -812,7 +820,7 @@
       const r = await fetch(AI_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context: aiContext() }),
+        body: JSON.stringify({ system: AI_SYSTEM, context: aiContext() }),
       });
       const j = await r.json();
       if (r.ok && j.tips?.length) {

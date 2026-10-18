@@ -8,13 +8,8 @@
 const ALLOWED_ORIGINS = ["https://pablo06casta.github.io", "http://localhost:8766"];
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
-const SYSTEM = `Eres el asistente de la app "Mi Día". Con los datos del tiempo y la agenda del usuario, da 3 sugerencias prácticas y concretas para su día.
-- Español de España, tono cercano y directo, como un amigo que sabe de meteorología.
-- Máximo 20 palabras por sugerencia.
-- Cruza el tiempo con sus planes: qué ponerse, si llevar paraguas y a qué hora llueve respecto a cada plan, cuándo es mejor salir, calidad del aire, sol y UV, viento, la puesta de sol.
-- Si no hay planes, propone algo que encaje con el tiempo de hoy.
-- No repitas datos sin aportar nada, no inventes planes y no uses emojis.
-Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.`;
+// Instrucciones por defecto. La app envía las suyas en "system", así se pueden cambiar sin tocar este puente.
+const SYSTEM = `Eres el asistente de la app "Mi Día". Da 3 sugerencias prácticas para el día en español de España, una por línea, sin numeración.`;
 
 export default {
   async fetch(request, env) {
@@ -40,16 +35,18 @@ async function advice(request, env, origin, cors) {
   if (!ALLOWED_ORIGINS.includes(origin)) return json({ error: "origen no permitido" }, 403);
   if (!env.AI) return json({ error: "Falta el enlace AI en Settings → Bindings" }, 500);
 
-  let context = "";
+  let context = "", system = SYSTEM;
   try {
-    context = String((await request.json()).context || "").slice(0, 3000);
+    const body = await request.json();
+    context = String(body.context || "").slice(0, 3000);
+    if (body.system) system = String(body.system).slice(0, 2000);
   } catch {}
   if (!context) return json({ error: "sin datos" }, 400);
 
   try {
     const out = await env.AI.run(MODEL, {
       messages: [
-        { role: "system", content: SYSTEM },
+        { role: "system", content: system },
         { role: "user", content: context },
       ],
       max_tokens: 220,

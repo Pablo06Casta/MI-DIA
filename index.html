@@ -233,6 +233,19 @@
   }
   .btn.primary { background: #fff; color: var(--card-solid); }
 
+  /* rain radar */
+  .radar-map { position: relative; height: 270px; border-radius: 18px; overflow: hidden; background: #1b2633; z-index: 0; }
+  .radar-msg { position: absolute; inset: 0; display: grid; place-items: center; font-size: 14px; color: var(--muted); }
+  .radar-map .leaflet-control-attribution { background: rgba(0,0,0,.45); color: rgba(255,255,255,.6); font-size: 9px; border-radius: 6px 0 0 0; }
+  .radar-map .leaflet-control-attribution a { color: rgba(255,255,255,.75); }
+  .radar-map .leaflet-control-zoom { display: none; }
+  .radar-map.leaflet-container { background: #1b2633; }
+  .radar-me { width: 14px; height: 14px; border-radius: 50%; background: #7fe3ff; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(127,227,255,.25); }
+  .radar-bar { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  .radar-play { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(255,255,255,.12); color: #fff; display: grid; place-items: center; cursor: pointer; }
+  .radar-play svg { width: 16px; height: 16px; }
+  #radarSlider { flex: 1; accent-color: #7fe3ff; }
+
   /* mail shortcut */
   .mail { display: flex; align-items: center; gap: 14px; padding: 14px 18px; color: inherit; text-decoration: none; }
   .mail:active { opacity: .7; }
@@ -429,6 +442,17 @@
       <p class="rain-line" id="rainLine" hidden></p>
       <div class="bars" id="bars"></div>
       <div class="bar-labels" id="barLabels"></div>
+    </section>
+
+    <section class="card" id="radarCard">
+      <div class="eyebrow"><span>Radar de lluvia</span><span id="radarTime"></span></div>
+      <div class="radar-map" id="radarMap"><p class="radar-msg" id="radarMsg">Cargando el radar…</p></div>
+      <div class="radar-bar">
+        <button class="radar-play" id="radarPlay" aria-label="Pausar">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="radarIcon"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        </button>
+        <input type="range" id="radarSlider" min="0" max="0" value="0" aria-label="Momento del radar">
+      </div>
     </section>
 
     <section class="card">
@@ -1162,6 +1186,102 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     } catch (e) { pushStatus("No se ha podido enviar: " + e.message, true); }
   };
 
+  /* ---------- rain radar (RainViewer + CARTO map, loaded only when you scroll to it) ---------- */
+  const radar = { map: null, frames: [], layers: [], i: 0, timer: null, playing: true, me: null, loaded: 0 };
+  const LEAFLET = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/";
+
+  function loadLeaflet() {
+    if (window.L) return Promise.resolve();
+    return new Promise((res, rej) => {
+      const css = document.createElement("link");
+      css.rel = "stylesheet"; css.href = LEAFLET + "leaflet.min.css";
+      document.head.appendChild(css);
+      const js = document.createElement("script");
+      js.src = LEAFLET + "leaflet.min.js"; js.onload = res; js.onerror = rej;
+      document.head.appendChild(js);
+    });
+  }
+
+  function radarLabel(t) {
+    const mins = Math.round((Date.now() / 1000 - t) / 60);
+    const clockTxt = new Date(t * 1000).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    return mins <= 10 ? `Ahora · ${clockTxt}` : `Hace ${mins} min · ${clockTxt}`;
+  }
+
+  function showFrame(i) {
+    if (!radar.layers.length) return;
+    radar.i = (i + radar.layers.length) % radar.layers.length;
+    radar.layers.forEach((l, k) => l.setOpacity(k === radar.i ? 0.85 : 0));
+    $("radarSlider").value = radar.i;
+    $("radarTime").textContent = radarLabel(radar.frames[radar.i].time);
+  }
+
+  function radarPlay(on) {
+    radar.playing = on;
+    clearTimeout(radar.timer);
+    $("radarIcon").innerHTML = on
+      ? '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'
+      : '<path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/>';
+    $("radarPlay").setAttribute("aria-label", on ? "Pausar" : "Reproducir");
+    if (!on) return;
+    const step = () => {
+      showFrame(radar.i + 1);
+      radar.timer = setTimeout(step, radar.i === radar.layers.length - 1 ? 1800 : 550);
+    };
+    radar.timer = setTimeout(step, 550);
+  }
+
+  async function loadRadarFrames() {
+    const j = await fetch("https://api.rainviewer.com/public/weather-maps.json", { cache: "no-store" }).then((r) => r.json());
+    radar.frames = [...(j.radar?.past || []), ...(j.radar?.nowcast || [])];
+    radar.layers.forEach((l) => radar.map.removeLayer(l));
+    radar.layers = radar.frames.map((f) => L.tileLayer(`${j.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, {
+      opacity: 0, maxNativeZoom: 7, maxZoom: 10, tileSize: 256, zIndex: 2,
+      attribution: '<a href="https://www.rainviewer.com" target="_blank" rel="noopener">RainViewer</a>',
+    }).addTo(radar.map));
+    $("radarSlider").max = Math.max(0, radar.layers.length - 1);
+    radar.loaded = Date.now();
+    showFrame(radar.layers.length - 1);
+    if (radar.playing) radarPlay(true);
+  }
+
+  async function initRadar() {
+    if (radar.map) return;
+    try {
+      await loadLeaflet();
+      const loc = lastLoc || { lat: 40.4168, lon: -3.7038 };
+      $("radarMsg").remove();
+      radar.map = L.map("radarMap", { zoomControl: false, attributionControl: true, minZoom: 4, maxZoom: 10 })
+        .setView([loc.lat, loc.lon], 7);
+      const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
+      L.tileLayer(ESRI + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 10, attribution: "Mapa © Esri",
+      }).addTo(radar.map);
+      // city names on top of the rain
+      L.tileLayer(ESRI + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 10, zIndex: 5 }).addTo(radar.map);
+      radar.me = L.marker([loc.lat, loc.lon], { icon: L.divIcon({ className: "", html: '<div class="radar-me"></div>', iconSize: [14, 14] }), interactive: false, zIndexOffset: 1000 }).addTo(radar.map);
+      await loadRadarFrames();
+    } catch {
+      $("radarMap").innerHTML = '<p class="radar-msg">No he podido cargar el radar. Prueba más tarde.</p>';
+      radar.map = null;
+    }
+  }
+
+  function radarFollow() {
+    if (!radar.map || !lastLoc) return;
+    radar.map.setView([lastLoc.lat, lastLoc.lon], radar.map.getZoom());
+    radar.me.setLatLng([lastLoc.lat, lastLoc.lon]);
+  }
+
+  $("radarPlay").onclick = () => radarPlay(!radar.playing);
+  $("radarSlider").oninput = (e) => { radarPlay(false); showFrame(+e.target.value); };
+  new IntersectionObserver((entries) => {
+    if (!entries[0].isIntersecting) { clearTimeout(radar.timer); return; }
+    if (!radar.map) initRadar();
+    else if (Date.now() - radar.loaded > 10 * 60000) loadRadarFrames().catch(() => {});
+    else if (radar.playing) radarPlay(true);
+  }, { rootMargin: "200px" }).observe($("radarCard"));
+
   /* ---------- data ---------- */
   async function fetchWeather(lat, lon) {
     const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -1220,6 +1340,7 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
       render(w, a, loc.name);
       lastLoc = loc;
       syncPush();
+      radarFollow();
       try { localStorage.setItem(STORE, JSON.stringify({ loc, w, a, t: Date.now() })); } catch {}
       lastLoad = Date.now();
       loadNews();

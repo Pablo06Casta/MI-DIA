@@ -1,5 +1,5 @@
 // Mi Día — service worker: la app abre sin conexión y los datos se piden siempre frescos.
-const CACHE = "midia-v9";
+const CACHE = "midia-v10";
 const SHELL = ["./", "index.html", "calendar.js", "manifest.json", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {

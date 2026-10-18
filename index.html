@@ -301,42 +301,42 @@
   .skeleton { color: transparent !important; background: rgba(255,255,255,.1); border-radius: 8px; animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .5; } }
 
-  /* Alvin, the pixel cat */
-  .cat-layer { position: absolute; left: 0; right: 0; bottom: 9%; height: 0; z-index: 1; pointer-events: none; }
-  .cat { position: absolute; bottom: 0; left: 0; width: 48px; height: 48px; pointer-events: auto; cursor: pointer; -webkit-user-select: none; user-select: none; }
-  .cat-flip { position: absolute; inset: 0; transform-origin: 50% 100%; }
-  .cat.left .cat-flip { transform: scaleX(-1); }
-  .cat-sprite { position: absolute; left: 0; bottom: 0; width: 48px; height: 45px; transform-origin: 50% 100%; }
-  .cat-sprite svg, .cat-umbrella svg { display: block; width: 100%; height: 100%; image-rendering: pixelated; shape-rendering: crispEdges; }
-  .cat-shadow { position: absolute; left: 6px; right: 6px; bottom: -3px; height: 5px; border-radius: 50%; background: rgba(0,0,0,.18); transition: transform .2s; }
-  .cat.walking .cat-sprite { animation: catWalk .42s ease-in-out infinite; }
-  .cat.jump .cat-sprite { animation: catJump .7s cubic-bezier(.3,.7,.4,1); }
-  .cat.jump .cat-shadow { transform: scale(.6); }
-  @keyframes catWalk { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3deg); } }
-  @keyframes catJump {
+  /* pixel pets: Alvin the cat and Zogli the Yorkshire */
+  .pet-layer { position: absolute; left: 0; right: 0; bottom: 9%; height: 0; z-index: 1; pointer-events: none; }
+  .pet { position: absolute; bottom: 0; left: 0; width: 48px; height: 48px; pointer-events: auto; cursor: pointer; -webkit-user-select: none; user-select: none; }
+  .pet-flip { position: absolute; inset: 0; transform-origin: 50% 100%; }
+  .pet.left .pet-flip { transform: scaleX(-1); }
+  .pet-sprite { position: absolute; left: 0; bottom: 0; width: 48px; height: 45px; transform-origin: 50% 100%; }
+  .pet-sprite svg, .pet-umbrella svg { display: block; width: 100%; height: 100%; image-rendering: pixelated; shape-rendering: crispEdges; }
+  .pet-shadow { position: absolute; left: 6px; right: 6px; bottom: -3px; height: 5px; border-radius: 50%; background: rgba(0,0,0,.18); transition: transform .2s; }
+  .pet.walking .pet-sprite { animation: petWalk .42s ease-in-out infinite; }
+  .pet.jump .pet-sprite { animation: petJump .7s cubic-bezier(.3,.7,.4,1); }
+  .pet.jump .pet-shadow { transform: scale(.6); }
+  @keyframes petWalk { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3deg); } }
+  @keyframes petJump {
     0% { transform: scale(1.12, .84); }
     18% { transform: translateY(0) scale(.9, 1.14); }
     50% { transform: translateY(-38px) scale(1, 1); }
     82% { transform: translateY(0) scale(1.12, .84); }
     100% { transform: none; }
   }
-  .cat-umbrella { position: absolute; left: 3px; bottom: 36px; width: 42px; height: 33px; display: none; }
-  .cat.rainy .cat-umbrella { display: block; }
-  .cat-zz { position: absolute; left: 34px; bottom: 34px; font: 700 12px/1 ui-monospace, Menlo, monospace; color: #fff; display: none; text-shadow: 0 1px 4px rgba(0,0,0,.3); }
-  .cat.sleeping .cat-zz { display: block; animation: catZz 2.4s ease-in-out infinite; }
-  @keyframes catZz { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(10px, -14px); } }
-  .cat-bubble {
+  .pet-umbrella { position: absolute; left: 3px; bottom: 36px; width: 42px; height: 33px; display: none; }
+  .pet.rainy .pet-umbrella { display: block; }
+  .pet-zz { position: absolute; left: 34px; bottom: 34px; font: 700 12px/1 ui-monospace, Menlo, monospace; color: #fff; display: none; text-shadow: 0 1px 4px rgba(0,0,0,.3); }
+  .pet.sleeping .pet-zz { display: block; animation: petZz 2.4s ease-in-out infinite; }
+  @keyframes petZz { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(10px, -14px); } }
+  .pet-bubble {
     position: absolute; left: 50%; bottom: 58px; transform: translate(-50%, 6px) scale(.9); opacity: 0;
     background: #fff; color: #1d2b3a; font-size: 13px; font-weight: 600; white-space: nowrap;
     padding: 6px 10px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.15);
     transition: opacity .2s, transform .2s; pointer-events: none;
   }
-  .cat-bubble::after { content: ""; position: absolute; left: calc(50% + var(--tail, 0px)); bottom: -5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: #fff; }
-  .cat-bubble.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
-  .cat.rainy .cat-bubble { bottom: 74px; }
+  .pet-bubble::after { content: ""; position: absolute; left: calc(50% + var(--tail, 0px)); bottom: -5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: #fff; }
+  .pet-bubble.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  .pet.rainy .pet-bubble { bottom: 74px; }
 
   @media (prefers-reduced-motion: reduce) {
-    .drift, .drop, .flake, .flash, .twinkle, .cat-sprite, .cat-zz { animation: none !important; }
+    .drift, .drop, .flake, .flash, .twinkle, .pet-sprite, .pet-zz { animation: none !important; }
   }
 </style>
 </head>
@@ -400,17 +400,7 @@
       <path fill="var(--ground)" d="M0 284 C80 276 160 282 220 286 C300 291 350 280 400 282 V320 H0Z"/>
     </svg>
     <div class="fx" id="fx"></div>
-    <div class="cat-layer">
-      <div class="cat" id="cat" role="button" aria-label="Alvin, el gato. Tócalo para que salte">
-        <div class="cat-bubble" id="catBubble"></div>
-        <div class="cat-flip">
-          <div class="cat-shadow"></div>
-          <div class="cat-umbrella" id="catUmbrella"></div>
-          <div class="cat-sprite" id="catSprite"></div>
-          <div class="cat-zz">z<sup>z</sup></div>
-        </div>
-      </div>
-    </div>
+    <div class="pet-layer" id="pets"></div>
     <div class="now">
       <div class="temp" id="temp"><span class="skeleton">00</span><sup>°</sup></div>
       <div class="cond" id="cond">&nbsp;</div>
@@ -750,7 +740,7 @@
     const [label, kind] = wmo(C.weather_code);
     const isDay = C.is_day === 1;
     applyTheme(kind, isDay);
-    catMood(kind, isDay, C.temperature_2m);
+    petsMood(kind, isDay, C.temperature_2m);
 
     $("city").textContent = place;
     $("temp").innerHTML = `${r0(C.temperature_2m)}<sup>°</sup>`;
@@ -861,9 +851,24 @@
   }
   setInterval(() => { if (lastW) { paintRainSoon(); paintDayText(); } }, 5 * 60000);
 
-  /* ---------- Alvin, the pixel cat that lives in the landscape ---------- */
-  const CAT_COLORS = { k: "#2b2b2e", g: "#a3a3a8", d: "#6d6d73", l: "#cfcfd4", w: "#f6f6f8", p: "#f6a9b6", s: "#1a1a1d", h: "#5c5c66" };
-  const CAT_BASE = [
+  /* ---------- pixel pets that live in the landscape: Alvin (cat) and Zogli (Yorkshire) ---------- */
+  const UMBRELLA = [
+    "......kkkk......",
+    "....kkhhhhkk....",
+    "..kkhhhhhhhhkk..",
+    ".khhhhhhhhhhhhk.",
+    "khhhhhhhhhhhhhhk",
+    "kkkkkkkkkkkkkkkk",
+    ".......kk.......",
+    ".......kk.......",
+    ".......kk.......",
+    ".......kk.......",
+    "......kk........",
+  ];
+  // swap some rows of a drawing (for closed eyes, sunglasses…)
+  const withRows = (base, rows) => base.map((r, i) => rows[i] ?? r);
+
+  const ALVIN_BASE = [
     ".kk..........kk.",
     ".kgk........kgk.",
     ".kglkkkkkkkklgk.",
@@ -880,23 +885,59 @@
     "kkkggkwwwwkggk..",
     "..kkkkkkkkkkkk..",
   ];
-  const CAT_FRAMES = {
-    happy: CAT_BASE,
-    sleep: CAT_BASE.map((r, i) => i === 5 ? ".kggggggggggggk." : i === 6 ? ".kgkkkgwwgkkkgk." : r),
-    cool: CAT_BASE.map((r, i) => i === 5 ? ".kskkkkkkkkkskk." : i === 6 ? ".kssshgwwgsshsk." : r),
-  };
-  const UMBRELLA = [
-    "......kkkk......",
-    "....kkhhhhkk....",
-    "..kkhhhhhhhhkk..",
-    ".khhhhhhhhhhhhk.",
-    "khhhhhhhhhhhhhhk",
-    "kkkkkkkkkkkkkkkk",
-    ".......kk.......",
-    ".......kk.......",
-    ".......kk.......",
-    ".......kk.......",
-    "......kk........",
+  const ZOGLI_BASE = [
+    "..kk........kk..",
+    ".kbtk......ktbk.",
+    ".kbttk....kttbk.",
+    ".kbtttkkkktttbk.",
+    ".ktttlllllltttk.",
+    ".kttyyllllyyttk.",
+    ".ktyweyyyyweytk.",
+    ".ktyeeyyyyeeytk.",
+    ".kttyyykkyyyttk.",
+    ".ktttyyppyytttk.",
+    "kkksstyyyytssk..",
+    "kskxsstyytssxk..",
+    ".kkssstyytsssk..",
+    "..kttkyyyykttk..",
+    "..kkkkkkkkkkkk..",
+  ];
+
+  const PETS = [
+    {
+      name: "Alvin", what: "el gato", sound: "¡Miau!", x: 40, speed: 26, depth: 0,
+      colors: { k: "#2b2b2e", g: "#a3a3a8", d: "#6d6d73", l: "#cfcfd4", w: "#f6f6f8", p: "#f6a9b6", s: "#1a1a1d", h: "#5c5c66" },
+      frames: {
+        happy: ALVIN_BASE,
+        sleep: withRows(ALVIN_BASE, { 5: ".kggggggggggggk.", 6: ".kgkkkgwwgkkkgk." }),
+        cool: withRows(ALVIN_BASE, { 5: ".kskkkkkkkkkskk.", 6: ".kssshgwwgsshsk." }),
+      },
+      lines: {
+        night: ["Zzz… miau", "Miau… déjame dormir", "Prrr… zzz"],
+        rain: ["¡Miau! Coge el paraguas", "Odio mojarme… miau", "¡Llueve, miau!"],
+        snow: ["¡Miau! ¡Nieve!", "Tengo las patitas frías"],
+        hot: ["Miau, qué calorcito", "Aquí al solecito… prrr"],
+        cold: ["Miau… qué frío", "Abrígate, humano"],
+        any: ["¡Miau!", "¡Prrr!", "Miau, ¿salimos?", "¡Hola! Soy Alvin", "Miau, buen día"],
+      },
+    },
+    {
+      name: "Zogli", what: "el Yorkshire", sound: "¡Guau!", x: 200, speed: 34, depth: -6,
+      colors: { k: "#26201b", b: "#8a5a2b", t: "#c98a4b", y: "#e8b77f", l: "#c9ccd2", s: "#5f6b78", x: "#3f4954", e: "#111111", w: "#ffffff", p: "#f2899a", h: "#5c5c66" },
+      frames: {
+        happy: ZOGLI_BASE,
+        sleep: withRows(ZOGLI_BASE, { 6: ".ktyyyyyyyyyytk.", 7: ".ktykkyyyykkytk." }),
+        cool: withRows(ZOGLI_BASE, { 6: ".ktkkkkkkkkkktk.", 7: ".ktykkyyyykkytk." }),
+      },
+      lines: {
+        night: ["Zzz… guau", "Grr… zzz", "Guau… a dormir"],
+        rain: ["¡Guau! ¡Paraguas!", "No me quiero mojar el pelo", "¡Guau, cuánta agua!"],
+        snow: ["¡Guau! ¡Nieve!", "¡A jugar con la nieve!"],
+        hot: ["Guau, qué calor…", "¿Me das agüita?"],
+        cold: ["Guau… tiemblo de frío", "¿Me pones el abrigo?"],
+        any: ["¡Guau!", "¡Guau guau!", "¿Paseo? ¡Guau!", "¡Hola! Soy Zogli", "¿Jugamos a la pelota?"],
+      },
+    },
   ];
 
   function pixelSVG(rows, colors) {
@@ -907,113 +948,133 @@
         const c = row[x];
         let n = 1;
         while (x + n < w && row[x + n] === c) n++;
-        if (c !== ".") rects += `<rect x="${x}" y="${y}" width="${n}" height="1" fill="${colors[c]}"/>`;
+        if (c !== "." && colors[c]) rects += `<rect x="${x}" y="${y}" width="${n}" height="1" fill="${colors[c]}"/>`;
         x += n;
       }
     });
     return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${rects}</svg>`;
   }
 
-  const cat = {
-    el: $("cat"), x: 40, dir: 1, speed: 26, mode: "walk", state: "walk", until: 0,
-    last: 0, raf: 0, visible: true, mood: { kind: "clear", isDay: true, temp: 18 },
-  };
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  $("catUmbrella").innerHTML = pixelSVG(UMBRELLA, { k: "#2b2b2e", h: "#ffd36e" });
+  const umbrellaSVG = pixelSVG(UMBRELLA, { k: "#2b2b2e", h: "#ffd36e" });
+  let petsMoodNow = { kind: "clear", isDay: true, temp: 18 };
+  let petsLayerVisible = true, petsRaf = 0, petsLast = 0, petsMeetAt = 0;
 
-  function catFrame(name) {
-    if (cat.frame === name) return;
-    cat.frame = name;
-    $("catSprite").innerHTML = pixelSVG(CAT_FRAMES[name], CAT_COLORS);
+  const pets = PETS.map((def, idx) => {
+    const el = document.createElement("div");
+    el.className = "pet";
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", `${def.name}, ${def.what}. Tócalo para que salte`);
+    el.style.bottom = def.depth + "px";
+    el.style.zIndex = 2 + idx;
+    el.innerHTML = `<div class="pet-bubble"></div>
+      <div class="pet-flip"><div class="pet-shadow"></div><div class="pet-umbrella">${umbrellaSVG}</div>
+      <div class="pet-sprite"></div><div class="pet-zz">z<sup>z</sup></div></div>`;
+    $("pets").appendChild(el);
+    const pet = { ...def, el, sprite: el.querySelector(".pet-sprite"), bubble: el.querySelector(".pet-bubble"),
+      dir: idx % 2 ? -1 : 1, baseSpeed: def.speed, mode: "walk", state: "walk", until: 0, frame: "" };
+    el.addEventListener("click", () => {
+      petJump(pet);
+      petSay(pet, petLine(pet));
+      if (pet.mode === "sleep") { el.classList.remove("sleeping"); petFrame(pet, "happy"); setTimeout(() => petMood(pet), 2600); }
+    });
+    petFrame(pet, "happy");
+    return pet;
+  });
+
+  function petFrame(pet, name) {
+    if (pet.frame === name) return;
+    pet.frame = name;
+    pet.sprite.innerHTML = pixelSVG(pet.frames[name], pet.colors);
   }
 
-  function catSay(text) {
-    const b = $("catBubble");
+  function petSay(pet, text) {
+    const b = pet.bubble;
     b.textContent = text;
-    // keep the bubble inside the screen; the little tail still points at Alvin
-    const W = cat.el.parentElement.clientWidth, bw = b.offsetWidth, center = cat.x + 24;
+    // keep the bubble inside the screen; the little tail still points at the pet
+    const W = pet.el.parentElement.clientWidth, bw = b.offsetWidth, center = pet.x + 24;
     const shift = Math.min(W - 8 - bw / 2, Math.max(8 + bw / 2, center)) - center;
     b.style.marginLeft = shift + "px";
     b.style.setProperty("--tail", -shift + "px");
-    // Alvin stops walking while talking
-    if (cat.mode === "walk") { cat.state = "sit"; cat.until = performance.now() + 2600; }
+    if (pet.mode === "walk") { pet.state = "sit"; pet.until = performance.now() + 2600; } // stops while talking
     b.classList.add("show");
-    clearTimeout(cat.sayTimer);
-    cat.sayTimer = setTimeout(() => b.classList.remove("show"), 2400);
+    clearTimeout(pet.sayTimer);
+    pet.sayTimer = setTimeout(() => b.classList.remove("show"), 2400);
   }
 
-  function catJump() {
+  function petJump(pet) {
     if (reduceMotion) return;
-    const el = cat.el;
-    el.classList.remove("jump");
-    void el.offsetWidth; // restart the animation
-    el.classList.add("jump");
-    setTimeout(() => el.classList.remove("jump"), 720);
+    pet.el.classList.remove("jump");
+    void pet.el.offsetWidth; // restart the animation
+    pet.el.classList.add("jump");
+    setTimeout(() => pet.el.classList.remove("jump"), 720);
   }
 
-  // How Alvin behaves with today's weather
-  function catMood(kind, isDay, temp) {
-    cat.mood = { kind, isDay, temp };
+  // How each pet behaves with today's weather
+  function petMood(pet) {
+    const { kind, isDay, temp } = petsMoodNow;
     const wet = kind === "rain" || kind === "storm";
-    cat.mode = !isDay ? "sleep" : (temp >= 28 && (kind === "clear" || kind === "partly")) ? "sun" : "walk";
-    cat.speed = wet ? 44 : 26;
-    cat.el.classList.toggle("rainy", wet && cat.mode !== "sleep");
-    cat.el.classList.toggle("sleeping", cat.mode === "sleep");
-    catFrame(cat.mode === "sleep" ? "sleep" : cat.mode === "sun" ? "cool" : "happy");
-    if (cat.mode !== "walk") { cat.state = "sit"; cat.el.classList.remove("walking"); }
-    else if (cat.state !== "walk") { cat.state = "walk"; cat.until = 0; }
+    pet.mode = !isDay ? "sleep" : (temp >= 28 && (kind === "clear" || kind === "partly")) ? "sun" : "walk";
+    pet.speed = pet.baseSpeed * (wet ? 1.6 : 1);
+    pet.el.classList.toggle("rainy", wet && pet.mode !== "sleep");
+    pet.el.classList.toggle("sleeping", pet.mode === "sleep");
+    petFrame(pet, pet.mode === "sleep" ? "sleep" : pet.mode === "sun" ? "cool" : "happy");
+    if (pet.mode !== "walk") { pet.state = "sit"; pet.el.classList.remove("walking"); }
+    else if (pet.state !== "walk") { pet.state = "walk"; pet.until = 0; }
+  }
+  function petsMood(kind, isDay, temp) { petsMoodNow = { kind, isDay, temp }; pets.forEach(petMood); }
+
+  function petLine(pet) {
+    const { kind, isDay, temp } = petsMoodNow;
+    const L = pet.lines;
+    const list = !isDay ? L.night : (kind === "rain" || kind === "storm") ? L.rain : kind === "snow" ? L.snow
+      : temp >= 28 ? L.hot : temp < 10 ? L.cold : L.any;
+    return list[Math.floor(Math.random() * list.length)];
   }
 
-  function catLine() {
-    const { kind, isDay, temp } = cat.mood;
-    const pick = (a) => a[Math.floor(Math.random() * a.length)];
-    if (!isDay) return pick(["Zzz… miau", "Miau… déjame dormir", "Prrr… zzz"]);
-    if (kind === "rain" || kind === "storm") return pick(["¡Miau! Coge el paraguas", "Odio mojarme… miau", "¡Llueve, miau!"]);
-    if (kind === "snow") return pick(["¡Miau! ¡Nieve!", "Tengo las patitas frías"]);
-    if (temp >= 28) return pick(["Miau, qué calorcito", "Aquí al solecito… prrr"]);
-    if (temp < 10) return pick(["Miau… qué frío", "Abrígate, humano"]);
-    return pick(["¡Miau!", "¡Prrr!", "Miau, ¿salimos?", "¡Hola! Soy Alvin", "Miau, buen día"]);
-  }
-
-  cat.el.addEventListener("click", () => {
-    catJump();
-    catSay(catLine());
-    if (cat.mode === "sleep") { cat.el.classList.remove("sleeping"); catFrame("happy"); setTimeout(() => catMood(cat.mood.kind, cat.mood.isDay, cat.mood.temp), 2600); }
-  });
-
-  function catTick(t) {
-    cat.raf = requestAnimationFrame(catTick);
-    const dt = Math.min(0.05, (t - (cat.last || t)) / 1000);
-    cat.last = t;
-    const max = cat.el.parentElement.clientWidth - 48;
-    if (cat.mode === "walk" && !reduceMotion) {
-      if (t > cat.until) {
-        // every few seconds: keep walking, stop to sit for a moment, or jump
-        const r = Math.random();
-        if (cat.state === "walk" && r < 0.25) { cat.state = "sit"; cat.until = t + 2000 + Math.random() * 2500; }
-        else { cat.state = "walk"; cat.until = t + 4000 + Math.random() * 5000; if (r > 0.7) catJump(); }
+  function petsTick(t) {
+    petsRaf = requestAnimationFrame(petsTick);
+    const dt = Math.min(0.05, (t - (petsLast || t)) / 1000);
+    petsLast = t;
+    const max = $("pets").clientWidth - 48;
+    pets.forEach((pet, idx) => {
+      if (pet.mode === "walk" && !reduceMotion) {
+        if (t > pet.until) {
+          // every few seconds: keep walking, stop to sit for a moment, or jump
+          const r = Math.random();
+          if (pet.state === "walk" && r < 0.25) { pet.state = "sit"; pet.until = t + 2000 + Math.random() * 2500; }
+          else { pet.state = "walk"; pet.until = t + 4000 + Math.random() * 5000; if (r > 0.7) petJump(pet); }
+        }
+        if (pet.state === "walk") {
+          pet.x += pet.dir * pet.speed * dt;
+          if (pet.x > max) { pet.x = max; pet.dir = -1; }
+          if (pet.x < 0) { pet.x = 0; pet.dir = 1; }
+        }
+      } else if (pet.mode !== "walk") {
+        const spot = max * (0.42 + idx * 0.3); // each one sleeps / sunbathes on its own spot
+        pet.x += (spot - pet.x) * Math.min(1, dt * 2);
       }
-      if (cat.state === "walk") {
-        cat.x += cat.dir * cat.speed * dt;
-        if (cat.x > max) { cat.x = max; cat.dir = -1; }
-        if (cat.x < 0) { cat.x = 0; cat.dir = 1; }
-      }
-    } else if (cat.mode !== "walk") {
-      cat.x += (max * 0.68 - cat.x) * Math.min(1, dt * 2); // settle on its favourite spot
+      pet.el.classList.toggle("walking", pet.mode === "walk" && pet.state === "walk" && !reduceMotion);
+      pet.el.classList.toggle("left", pet.dir < 0);
+      pet.el.style.transform = `translateX(${pet.x.toFixed(1)}px)`;
+    });
+    // when Alvin and Zogli meet they say hello
+    const [a, b] = pets;
+    if (a.mode === "walk" && b.mode === "walk" && Math.abs(a.x - b.x) < 26 && t > petsMeetAt) {
+      petsMeetAt = t + 25000;
+      petJump(a); petJump(b);
+      petSay(b, "¡Guau! ¡Hola, Alvin!");
+      setTimeout(() => petSay(a, "Miau… hola, Zogli"), 900);
     }
-    cat.el.classList.toggle("walking", cat.mode === "walk" && cat.state === "walk" && !reduceMotion);
-    cat.el.classList.toggle("left", cat.dir < 0);
-    cat.el.style.transform = `translateX(${cat.x.toFixed(1)}px)`;
   }
 
-  function catRun(on) {
-    cancelAnimationFrame(cat.raf);
-    cat.last = 0;
-    if (on) cat.raf = requestAnimationFrame(catTick);
+  function petsRun(on) {
+    cancelAnimationFrame(petsRaf);
+    petsLast = 0;
+    if (on) petsRaf = requestAnimationFrame(petsTick);
   }
-  catFrame("happy");
-  new IntersectionObserver((e) => { cat.visible = e[0].isIntersecting; catRun(cat.visible && !document.hidden); }).observe(document.querySelector(".hero"));
-  document.addEventListener("visibilitychange", () => catRun(cat.visible && !document.hidden));
+  new IntersectionObserver((e) => { petsLayerVisible = e[0].isIntersecting; petsRun(petsLayerVisible && !document.hidden); }).observe(document.querySelector(".hero"));
+  document.addEventListener("visibilitychange", () => petsRun(petsLayerVisible && !document.hidden));
 
   /* ---------- calendar ---------- */
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

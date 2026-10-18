@@ -155,6 +155,7 @@
     display: grid; place-items: center; background: var(--tile);
   }
   .ico svg { width: 26px; height: 26px; }
+  .stat > div:last-child { min-width: 0; }
   .stat .label { font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stat .value { font-size: 19px; font-weight: 600; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -189,15 +190,6 @@
   .range { height: 5px; border-radius: 5px; background: rgba(255,255,255,.1); position: relative; }
   .range i { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: linear-gradient(90deg, #7fe3ff, #ffd36e); }
 
-  /* soon */
-  .soon { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 9px 14px; border-radius: 999px; background: var(--tile);
-    font-size: 14px; color: var(--muted);
-  }
-  .chip svg { width: 16px; height: 16px; }
-
   .foot { text-align: center; font-size: 12px; color: rgba(255,255,255,.4); padding-top: 4px; }
   .foot a { color: inherit; }
 
@@ -231,6 +223,14 @@
     background: rgba(255,255,255,.14); border: 0; border-radius: 999px; padding: 10px 18px; cursor: pointer;
   }
   .btn.primary { background: #fff; color: var(--card-solid); }
+
+  /* mail shortcut */
+  .mail { display: flex; align-items: center; gap: 14px; padding: 14px 18px; color: inherit; text-decoration: none; }
+  .mail:active { opacity: .7; }
+  .mail-text { flex: 1; }
+  .mail-title { font-size: 17px; font-weight: 600; }
+  .mail-sub { font-size: 14px; color: var(--muted); margin-top: 1px; }
+  .mail .chev { width: 20px; height: 20px; color: var(--muted); }
 
   /* news briefing */
   .icon-btn { background: none; border: 0; color: var(--muted); cursor: pointer; display: grid; place-items: center; width: 28px; height: 28px; margin: -6px -6px -6px 0; }
@@ -398,6 +398,12 @@
       </div>
     </section>
 
+    <a class="card mail" id="openSpark" href="readdle-spark://">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#7fe3ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></div>
+      <div class="mail-text"><div class="mail-title">Correo</div><div class="mail-sub">Abrir Spark</div></div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+    </a>
+
     <section class="card">
       <div class="eyebrow"><span>Próximas horas</span><span id="sunLabel"></span></div>
       <div class="hours" id="hours"></div>
@@ -412,13 +418,6 @@
     <section class="card">
       <div class="eyebrow"><span>7 días</span></div>
       <div id="days"></div>
-    </section>
-
-    <section class="card">
-      <div class="eyebrow"><span>Próximamente</span></div>
-      <div class="soon">
-        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>Correo</span>
-      </div>
     </section>
 
     <section class="card" id="newsCard">
@@ -1001,6 +1000,15 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     }
   }
   $("newsRefresh").onclick = () => loadNews(true);
+
+  // If Spark is not installed the app stays visible: offer it on the App Store.
+  $("openSpark").addEventListener("click", () => {
+    setTimeout(() => {
+      if (document.visibilityState === "visible" && confirm("No he podido abrir Spark. ¿Quieres verla en el App Store?")) {
+        location.href = "https://apps.apple.com/app/id997102246";
+      }
+    }, 1800);
+  });
 
   /* ---------- data ---------- */
   async function fetchWeather(lat, lon) {

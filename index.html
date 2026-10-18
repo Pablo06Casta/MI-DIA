@@ -138,9 +138,15 @@
   .tip {
     margin-top: 14px; padding: 12px 14px; border-radius: 16px;
     background: var(--tile); font-size: 15px; line-height: 1.4; color: rgba(255,255,255,.88);
-    display: flex; gap: 10px; align-items: flex-start;
   }
-  .tip svg { flex: none; width: 20px; height: 20px; margin-top: 1px; color: var(--accent); }
+  .tip-head {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent);
+  }
+  .tip-head svg { width: 15px; height: 15px; }
+  .tip-item { padding: 6px 0; }
+  .tip-item + .tip-item { border-top: 1px solid rgba(255,255,255,.07); }
+  .tip.thinking .tip-head svg { animation: pulse 1.2s ease-in-out infinite; }
 
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; margin-top: 18px; }
   .stat { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -336,8 +342,11 @@
       <div class="eyebrow"><span id="greeting">Tu día</span><span id="dateLabel"></span></div>
       <p class="summary" id="summary"><span class="skeleton">Preparando el resumen de tu día con los datos de tu ubicación…</span></p>
       <div class="tip" id="tip" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.9V16h5v-.2c0-.8.4-1.5 1-1.9A6 6 0 0 0 12 3z"/></svg>
-        <span id="tipText"></span>
+        <div class="tip-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
+          <span id="tipLabel">Sugerencias</span>
+        </div>
+        <div id="tipText"></div>
       </div>
       <div class="grid">
         <div class="stat">
@@ -737,8 +746,85 @@
       if (wet) tip = `Puede llover durante «${wet.title}» (${clock(wet.start)}). ` + tip;
     }
     $("summary").innerHTML = html;
-    $("tipText").textContent = tip;
     $("tip").hidden = false;
+    const ai = readAI();
+    if (ai && ai.key === aiKey()) showTips(ai.tips, true);
+    else { showTips([tip], false); scheduleAI(); }
+  }
+
+  /* ---------- AI suggestions (Workers AI, through the Cloudflare bridge) ---------- */
+  const AI_URL = CAL_PROXY + "consejo";
+  const AI_STORE = "midia:ai";
+  let aiTimer = null, aiBusy = false;
+  const readAI = () => { try { return JSON.parse(localStorage.getItem(AI_STORE)); } catch { return null; } };
+
+  function showTips(tips, fromAI) {
+    $("tipText").innerHTML = tips.map((t) => `<div class="tip-item">${esc(t)}</div>`).join("");
+    $("tipLabel").textContent = fromAI ? "Sugerencias · IA" : "Sugerencias";
+  }
+
+  // Everything the AI needs to know about the day, as plain text.
+  function aiContext() {
+    const w = lastW, C = w.current, D = w.daily, H = w.hourly;
+    const now = new Date();
+    const lines = [];
+    lines.push(`Lugar: ${lastPlace}. Ahora: ${now.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}, ${String(now.getHours()).padStart(2, "0")}:00.`);
+    lines.push(`Ahora: ${r0(C.temperature_2m)}° (sensación ${r0(C.apparent_temperature)}°), ${wmo(C.weather_code)[0].toLowerCase()}, humedad ${C.relative_humidity_2m}%, viento ${r0(C.wind_speed_10m)} km/h.`);
+    lines.push(`Hoy: máx ${r0(D.temperature_2m_max[0])}°, mín ${r0(D.temperature_2m_min[0])}°, viento máx ${r0(D.wind_speed_10m_max[0])} km/h, rachas ${r0(D.wind_gusts_10m_max?.[0] ?? 0)} km/h, UV máx ${r0(D.uv_index_max?.[0] ?? 0)}, sale el sol ${hm(D.sunrise[0])}, se pone ${hm(D.sunset[0])}.`);
+    const nowIdx = Math.max(0, H.time.findIndex((t) => t >= C.time.slice(0, 13) + ":00"));
+    const hours = [];
+    for (let i = nowIdx; i < Math.min(nowIdx + 18, H.time.length); i++) {
+      hours.push(`${H.time[i].slice(11, 13)}h ${r0(H.temperature_2m[i])}° ${H.precipitation_probability[i] ?? 0}%`);
+    }
+    lines.push(`Próximas horas (hora, temperatura, prob. lluvia): ${hours.join(", ")}.`);
+    const aqi = lastA?.current?.european_aqi;
+    if (aqi != null) lines.push(`Calidad del aire: ${aqiInfo(aqi)[0]} (índice europeo ${r0(aqi)}).`);
+    lines.push(`Mañana: ${wmo(D.weather_code[1])[0].toLowerCase()}, ${r0(D.temperature_2m_min[1])}°–${r0(D.temperature_2m_max[1])}°, lluvia ${D.precipitation_probability_max[1] ?? 0}%.`);
+    if (calEvents) {
+      const { today, next } = splitDays();
+      const fmt = (e) => `${e.allDay ? "todo el día" : `${clock(e.start)}–${clock(e.end)}`} ${e.title || "Sin título"}${e.location ? ` (${e.location})` : ""}`;
+      const left = today.filter((e) => e.allDay || e.end > now);
+      lines.push(`Agenda de hoy: ${left.length ? left.map(fmt).join("; ") : "nada más"}.`);
+      if (next.length) lines.push(`Agenda de mañana: ${next.slice(0, 4).map(fmt).join("; ")}.`);
+    } else lines.push("Agenda: no conectada.");
+    return lines.join("\n");
+  }
+
+  // New suggestions when the hour, the place or the agenda change.
+  function aiKey() {
+    if (!lastW) return "";
+    const ev = calEvents ? calEvents.map((e) => e.title + e.start.getTime()).join("|") : "";
+    return `${lastPlace}|${new Date().toDateString()}|${new Date().getHours()}|${ev}`;
+  }
+
+  function scheduleAI() {
+    clearTimeout(aiTimer);
+    aiTimer = setTimeout(fetchAI, 1200);
+  }
+
+  async function fetchAI() {
+    if (!lastW || aiBusy || !CAL_PROXY || !navigator.onLine) return;
+    if (readLinks().length && !calEvents) return; // wait for the agenda
+    const key = aiKey();
+    aiBusy = true;
+    $("tip").classList.add("thinking");
+    try {
+      const r = await fetch(AI_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ context: aiContext() }),
+      });
+      const j = await r.json();
+      if (r.ok && j.tips?.length) {
+        try { localStorage.setItem(AI_STORE, JSON.stringify({ key, tips: j.tips })); } catch {}
+        if (key === aiKey()) showTips(j.tips, true);
+      }
+    } catch {
+      // without AI the rule-based tip stays
+    } finally {
+      aiBusy = false;
+      $("tip").classList.remove("thinking");
+    }
   }
 
   function eventRow(e, now) {

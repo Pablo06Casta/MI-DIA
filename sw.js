@@ -1,5 +1,5 @@
 // Mi Día — service worker: la app abre sin conexión y los datos se piden siempre frescos.
-const CACHE = "midia-v8";
+const CACHE = "midia-v9";
 const SHELL = ["./", "index.html", "calendar.js", "manifest.json", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -25,4 +25,26 @@ self.addEventListener("fetch", (e) => {
       })
       .catch(() => caches.match(e.request).then((r) => r || caches.match("index.html")))
   );
+});
+
+// Aviso de la mañana: lo envía el puente de Cloudflare ya redactado.
+self.addEventListener("push", (e) => {
+  let msg = { title: "Mi Día", body: "Toca para ver tu día." };
+  try { msg = { ...msg, ...e.data.json() }; } catch {}
+  e.waitUntil(self.registration.showNotification(msg.title, {
+    body: msg.body,
+    icon: "icons/icon-192.png",
+    badge: "icons/icon-192.png",
+    tag: "mi-dia-manana",
+    data: { url: msg.url || "./" },
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    if (wins.length) return wins[0].focus();
+    return self.clients.openWindow(e.notification.data?.url || "./");
+  })());
 });

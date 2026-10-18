@@ -92,6 +92,15 @@
   .temp sup { font-size: 46px; vertical-align: top; position: relative; top: 4px; letter-spacing: 0; }
   .cond { font-size: 20px; font-weight: 500; margin-top: 4px; }
   .feels { font-size: 14px; color: rgba(255,255,255,.82); margin-top: 4px; }
+  .rain-now {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+    padding: 6px 12px 6px 10px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .rain-now svg { width: 16px; height: 16px; }
+  .rain-line { font-size: 15px; color: rgba(255,255,255,.88); margin: -2px 0 14px; }
+  .rain-line b { font-weight: 600; }
 
   /* clouds & weather fx */
   .drift { animation: drift linear infinite; }
@@ -271,6 +280,8 @@
   .sheet .row { display: flex; gap: 10px; margin-top: 4px; }
   .sheet .status { font-size: 14px; margin-top: 10px; min-height: 20px; color: #9ff0d0; }
   .sheet .status.err { color: #ffb08a; }
+  .push-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.06); font-size: 15px; }
+  .push-row input { font: inherit; font-size: 17px; font-weight: 600; color: #fff; background: none; border: 0; color-scheme: dark; }
 
   [hidden] { display: none !important; }
 
@@ -346,6 +357,10 @@
       <div class="temp" id="temp"><span class="skeleton">00</span><sup>°</sup></div>
       <div class="cond" id="cond">&nbsp;</div>
       <div class="feels" id="feels">&nbsp;</div>
+      <div class="rain-now" id="rainNow" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 1 9 9H3a9 9 0 0 1 9-9z"/><path d="M12 12v7a2 2 0 0 1-4 0"/></svg>
+        <span id="rainNowText"></span>
+      </div>
     </div>
   </section>
 
@@ -411,6 +426,7 @@
 
     <section class="card">
       <div class="eyebrow"><span>¿Va a llover?</span><span id="rainVerdict"></span></div>
+      <p class="rain-line" id="rainLine" hidden></p>
       <div class="bars" id="bars"></div>
       <div class="bar-labels" id="barLabels"></div>
     </section>
@@ -449,10 +465,25 @@
   </ol>
 
   <textarea id="calLinks" placeholder="webcal://p00-caldav.icloud.com/published/2/…" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
-  <p class="note">Los enlaces se guardan solo en este dispositivo, nunca en internet. Quien tenga uno de esos enlaces puede ver ese calendario, así que no los compartas.</p>
+  <p class="note">Los enlaces se guardan en este dispositivo y, si activas el aviso de la mañana, también en tu puente de Cloudflare para poder leer tu agenda. Quien tenga uno de esos enlaces puede ver ese calendario, así que no los compartas.</p>
   <div class="status" id="calStatus"></div>
   <div class="row">
-    <button class="btn primary" id="saveCal">Guardar</button>
+    <button class="btn primary" id="saveCal">Guardar calendario</button>
+  </div>
+
+  <h3>Aviso por la mañana</h3>
+  <p>Una notificación cada día con el tiempo, si va a llover y tus planes.</p>
+  <div class="push-row">
+    <label for="pushHour">Hora del aviso</label>
+    <input type="time" id="pushHour" value="08:00">
+  </div>
+  <div class="status" id="pushStatus"></div>
+  <div class="row">
+    <button class="btn primary" id="pushToggle">Activar aviso</button>
+    <button class="btn" id="pushTest" hidden>Enviar prueba</button>
+  </div>
+
+  <div class="row" style="margin-top:22px">
     <button class="btn" id="closeSettings">Cerrar</button>
   </div>
 </aside>
@@ -466,7 +497,7 @@
   const CAL_PROXY = "https://mi-dia-calendario.pablitocastaneda06.workers.dev/";
   const CAL_LINKS = "midia:cal";
   const CAL_CACHE = "midia:calcache";
-  let lastW = null, lastA = null, lastPlace = "", lastSummary = null, calEvents = null;
+  let lastW = null, lastA = null, lastPlace = "", lastSummary = null, calEvents = null, lastLoc = null;
   const DEFAULT = { lat: 40.4168, lon: -3.7038, name: "Madrid" };
   let lastLoad = 0;
 
@@ -662,6 +693,7 @@
 
     lastW = w; lastA = a; lastPlace = place;
     lastSummary = buildSummary(w, a, place);
+    paintRainSoon();
     paintDayText();
     renderAgenda();
 
@@ -727,6 +759,38 @@
     $("foot").innerHTML = `Actualizado ${upd.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })} · Datos: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>`;
   }
 
+  /* ---------- rain in the next minutes (15-minute forecast) ---------- */
+  function rainSoon() {
+    const m = lastW?.minutely_15;
+    if (!m?.precipitation) return null;
+    const WET = 0.1; // mm in 15 min
+    const now = Date.now();
+    const slots = m.time.map((t, i) => ({ t: new Date(t).getTime(), mm: m.precipitation[i] ?? 0 }))
+      .filter((x) => x.t + 15 * 60000 > now);
+    if (!slots.length) return null;
+    const kind = (mm) => mm * 4 < 2 ? "lluvia débil" : mm * 4 < 8 ? "lluvia moderada" : "lluvia fuerte";
+    const mins = (t) => Math.max(5, Math.round((t - now) / 300000) * 5);
+    const span = slots.length * 15;
+    if (slots[0].mm >= WET) {
+      const dry = slots.find((x) => x.mm < WET);
+      return { now: true, text: dry ? `Está lloviendo, parará en unos ${mins(dry.t)} min` : `Está lloviendo y seguirá al menos ${Math.round(span / 60)} h` };
+    }
+    const wet = slots.find((x) => x.mm >= WET);
+    if (!wet) return null;
+    return { now: false, text: `Empieza a llover en unos ${mins(wet.t)} min (${kind(wet.mm)})` };
+  }
+
+  function paintRainSoon() {
+    const soon = rainSoon();
+    $("rainNow").hidden = !soon;
+    $("rainNowText").textContent = soon ? soon.text.replace(/ \(.*\)$/, "") : "";
+    const line = $("rainLine");
+    if (!lastW?.minutely_15) { line.hidden = true; return; }
+    line.hidden = false;
+    line.innerHTML = soon ? `<b>${soon.text}.</b>` : "Sin lluvia en las próximas 3 horas.";
+  }
+  setInterval(() => { if (lastW) { paintRainSoon(); paintDayText(); } }, 5 * 60000);
+
   /* ---------- calendar ---------- */
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const clock = (d) => d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
@@ -753,6 +817,8 @@
   function paintDayText() {
     if (!lastSummary) return;
     let html = lastSummary.html, tip = lastSummary.tip;
+    const soon = rainSoon();
+    if (soon) html = `<b>${soon.text}.</b> ` + html;
     if (calEvents) {
       const { now, today } = splitDays();
       const upcoming = today.filter((e) => !e.allDay && e.end > now);
@@ -920,6 +986,7 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
   function openSettings() {
     $("calLinks").value = readLinks().join("\n");
     setStatus("");
+    paintPush();
     $("sheet").classList.add("open"); $("sheetBg").classList.add("open");
   }
   function closeSettings() { $("sheet").classList.remove("open"); $("sheetBg").classList.remove("open"); }
@@ -934,7 +1001,8 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     if (!links.length) { setStatus("Calendario desconectado."); loadCalendar(); return; }
     setStatus("Leyendo tu calendario…");
     await loadCalendar();
-    if (calEvents) { setStatus("¡Listo! Calendario conectado."); setTimeout(closeSettings, 900); }
+    syncPush();
+    if (calEvents) setStatus("¡Listo! Calendario conectado.");
   };
 
   /* ---------- news briefing (editions at 8:30, 14:30 and 20:30) ---------- */
@@ -1010,12 +1078,97 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     }, 1800);
   });
 
+  /* ---------- morning notification (Web Push through the Cloudflare bridge) ---------- */
+  const PUSH_STORE = "midia:push";
+  const readPush = () => { try { return JSON.parse(localStorage.getItem(PUSH_STORE)) || {}; } catch { return {}; } };
+  const savePush = (v) => { try { localStorage.setItem(PUSH_STORE, JSON.stringify(v)); } catch {} };
+  const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const b64uToBytes = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), (c) => c.charCodeAt(0));
+  function pushStatus(msg, err) { const s = $("pushStatus"); s.textContent = msg; s.classList.toggle("err", !!err); }
+
+  async function pushPost(path, body) {
+    const r = await fetch(CAL_PROXY + "push/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "error " + r.status);
+    return j;
+  }
+
+  async function currentSub() {
+    if (!pushSupported()) return null;
+    const reg = await navigator.serviceWorker.ready;
+    return reg.pushManager.getSubscription();
+  }
+
+  // Sends the bridge what it needs to write tomorrow's notification.
+  async function syncPush() {
+    const p = readPush();
+    if (!p.on || !lastLoc || !CAL_PROXY) return;
+    try {
+      const sub = await currentSub();
+      if (!sub) { savePush({ ...p, on: false }); paintPush(); return; }
+      await pushPost("subscribe", {
+        subscription: sub.toJSON(), lat: lastLoc.lat, lon: lastLoc.lon, place: localName(),
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone, hour: p.hour || "08:00", calendar: readLinks(),
+      });
+    } catch {}
+  }
+
+  function paintPush() {
+    const p = readPush();
+    $("pushHour").value = p.hour || "08:00";
+    $("pushToggle").textContent = p.on ? "Desactivar aviso" : "Activar aviso";
+    $("pushToggle").classList.toggle("primary", !p.on);
+    $("pushTest").hidden = !p.on;
+    if (!pushSupported()) {
+      pushStatus(navigator.standalone === false || /iPhone|iPad/.test(navigator.userAgent)
+        ? "Para recibir avisos, abre Mi Día desde el icono de la pantalla de inicio (no desde Safari)."
+        : "Este navegador no permite avisos.", true);
+      $("pushToggle").disabled = true;
+    } else pushStatus(p.on ? `Aviso activado a las ${p.hour || "08:00"}.` : "");
+  }
+
+  $("pushToggle").onclick = async () => {
+    const p = readPush();
+    try {
+      if (p.on) {
+        const sub = await currentSub();
+        if (sub) { await pushPost("unsubscribe", { endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe(); }
+        savePush({ ...p, on: false });
+        paintPush();
+        pushStatus("Aviso desactivado.");
+        return;
+      }
+      pushStatus("Activando…");
+      if (await Notification.requestPermission() !== "granted") { pushStatus("Necesito permiso para enviarte notificaciones. Puedes darlo en Ajustes del iPhone → Notificaciones → Mi Día.", true); return; }
+      const { key } = await fetch(CAL_PROXY + "push/key").then((r) => r.json());
+      if (!key) throw new Error("Falta preparar el puente (KV)");
+      const reg = await navigator.serviceWorker.ready;
+      await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(key) });
+      savePush({ on: true, hour: $("pushHour").value || "08:00" });
+      await syncPush();
+      paintPush();
+    } catch (e) {
+      pushStatus("No he podido activar el aviso: " + e.message, true);
+    }
+  };
+  $("pushHour").onchange = () => { const p = readPush(); savePush({ ...p, hour: $("pushHour").value || "08:00" }); syncPush(); paintPush(); };
+  $("pushTest").onclick = async () => {
+    try {
+      pushStatus("Enviando…");
+      await syncPush();
+      const sub = await currentSub();
+      const r = await pushPost("test", { endpoint: sub.endpoint });
+      pushStatus(r.ok ? "Enviado. Te llegará en unos segundos." : "No se ha podido enviar (" + r.status + ").", !r.ok);
+    } catch (e) { pushStatus("No se ha podido enviar: " + e.message, true); }
+  };
+
   /* ---------- data ---------- */
   async function fetchWeather(lat, lon) {
     const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
       `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m` +
       `&hourly=temperature_2m,precipitation_probability,weather_code` +
       `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max` +
+      `&minutely_15=precipitation&forecast_minutely_15=12` +
       `&timezone=auto&forecast_days=7`;
     const aUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi,pm2_5,pm10&timezone=auto`;
     const [w, a] = await Promise.all([
@@ -1065,6 +1218,8 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     try {
       const { w, a } = await fetchWeather(loc.lat, loc.lon);
       render(w, a, loc.name);
+      lastLoc = loc;
+      syncPush();
       try { localStorage.setItem(STORE, JSON.stringify({ loc, w, a, t: Date.now() })); } catch {}
       lastLoad = Date.now();
       loadNews();
@@ -1085,7 +1240,7 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
 
   // show cached data instantly, then refresh
   const saved = readSaved();
-  if (saved) { try { render(saved.w, saved.a, saved.loc.name); } catch {} }
+  if (saved) { try { lastLoc = saved.loc; render(saved.w, saved.a, saved.loc.name); } catch {} }
   load();
   loadCalendar();
   { const n = readNews(); if (n) renderNews(n.data, n.label); }

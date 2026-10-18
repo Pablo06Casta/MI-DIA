@@ -29,17 +29,27 @@
     }
   }
 
-  function parseDate(val, params) {
+  // wallTz: used by the Cloudflare bridge, which runs in UTC. Dates are then kept as
+  // "wall clock time in wallTz" so recurring events keep their hour across summer/winter time.
+  const toWall = (date, tz) => new Date(date.getTime() + tzOffset(date.getTime(), tz));
+
+  function parseDate(val, params, wallTz) {
     const m = val.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?/);
     if (!m) return null;
     const [, y, mo, d, h, mi, s, z] = m;
     if (h === undefined) return { date: new Date(+y, mo - 1, +d), allDay: true };
+    if (wallTz) {
+      const tz = (params.TZID || "").replace(/"/g, "");
+      if (!z && (!tz || tz === wallTz)) return { date: new Date(+y, mo - 1, +d, +h, +mi, +s), allDay: false };
+      const instant = z ? new Date(Date.UTC(+y, mo - 1, +d, +h, +mi, +s)) : zoned(+y, mo - 1, +d, +h, +mi, +s, tz);
+      return { date: toWall(instant, wallTz), allDay: false };
+    }
     if (z) return { date: new Date(Date.UTC(+y, mo - 1, +d, +h, +mi, +s)), allDay: false };
     if (params.TZID) return { date: zoned(+y, mo - 1, +d, +h, +mi, +s, params.TZID.replace(/"/g, "")), allDay: false };
     return { date: new Date(+y, mo - 1, +d, +h, +mi, +s), allDay: false };
   }
 
-  function parseICS(text) {
+  function parseICS(text, wallTz) {
     const events = [];
     let ev = null;
     for (const raw of unfold(text).split(/\r?\n/)) {
@@ -49,7 +59,7 @@
       const params = {};
       m[2].split(";").filter(Boolean).forEach((p) => { const [k, v] = p.split("="); params[k.toUpperCase()] = v; });
       const value = m[3];
-      if (name === "BEGIN" && value === "VEVENT") { ev = { exdates: [] }; continue; }
+      if (name === "BEGIN" && value === "VEVENT") { ev = { exdates: [], wallTz }; continue; }
       if (name === "END" && value === "VEVENT") { if (ev?.start) events.push(ev); ev = null; continue; }
       if (!ev) continue;
       switch (name) {
@@ -57,12 +67,12 @@
         case "SUMMARY": ev.title = unescape(value); break;
         case "LOCATION": ev.location = unescape(value); break;
         case "STATUS": ev.status = value.toUpperCase(); break;
-        case "DTSTART": { const d = parseDate(value, params); if (d) { ev.start = d.date; ev.allDay = d.allDay; } break; }
-        case "DTEND": { const d = parseDate(value, params); if (d) ev.end = d.date; break; }
+        case "DTSTART": { const d = parseDate(value, params, wallTz); if (d) { ev.start = d.date; ev.allDay = d.allDay; } break; }
+        case "DTEND": { const d = parseDate(value, params, wallTz); if (d) ev.end = d.date; break; }
         case "DURATION": ev.duration = parseDuration(value); break;
         case "RRULE": ev.rrule = Object.fromEntries(value.split(";").map((p) => p.split("="))); break;
-        case "EXDATE": value.split(",").forEach((v) => { const d = parseDate(v, params); if (d) ev.exdates.push(d.date.getTime()); }); break;
-        case "RECURRENCE-ID": { const d = parseDate(value, params); if (d) ev.recurrenceId = d.date.getTime(); break; }
+        case "EXDATE": value.split(",").forEach((v) => { const d = parseDate(v, params, wallTz); if (d) ev.exdates.push(d.date.getTime()); }); break;
+        case "RECURRENCE-ID": { const d = parseDate(value, params, wallTz); if (d) ev.recurrenceId = d.date.getTime(); break; }
       }
     }
     events.forEach((e) => {
@@ -138,7 +148,7 @@
         if (ev.start < to && ev.end > from) out.push(ev);
         continue;
       }
-      const until = ev.rrule.UNTIL ? parseDate(ev.rrule.UNTIL, {}).date : null;
+      const until = ev.rrule.UNTIL ? parseDate(ev.rrule.UNTIL, {}, ev.wallTz).date : null;
       const count = ev.rrule.COUNT ? +ev.rrule.COUNT : Infinity;
       let n = 0;
       for (const start of occurrences(ev)) {

@@ -232,6 +232,20 @@
   }
   .btn.primary { background: #fff; color: var(--card-solid); }
 
+  /* news briefing */
+  .icon-btn { background: none; border: 0; color: var(--muted); cursor: pointer; display: grid; place-items: center; width: 28px; height: 28px; margin: -6px -6px -6px 0; }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn.spin svg { animation: spin 1s linear infinite; }
+  .news-intro { font-size: 16px; line-height: 1.45; color: rgba(255,255,255,.92); margin-bottom: 4px; }
+  .news-sec { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin: 16px 0 2px; }
+  .news-item { display: block; padding: 10px 0; color: inherit; text-decoration: none; }
+  .news-item + .news-item { border-top: 1px solid rgba(255,255,255,.07); }
+  .news-item .nt { font-size: 16px; font-weight: 600; line-height: 1.3; }
+  .news-item .ns { font-size: 14px; line-height: 1.4; color: rgba(255,255,255,.75); margin-top: 4px; }
+  .news-item .src { font-size: 12px; color: var(--muted); margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+  .news-item .src svg { width: 12px; height: 12px; }
+  .news-item:active { opacity: .6; }
+
   /* settings sheet */
   .sheet-bg { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: opacity .25s; }
   .sheet-bg.open { opacity: 1; pointer-events: auto; }
@@ -384,6 +398,16 @@
       </div>
     </section>
 
+    <section class="card" id="newsCard">
+      <div class="eyebrow">
+        <span id="newsLabel">Tu briefing</span>
+        <button class="icon-btn" id="newsRefresh" aria-label="Actualizar noticias">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
+        </button>
+      </div>
+      <div id="news"><p class="empty skeleton">Preparando tus noticias del día…</p></div>
+    </section>
+
     <section class="card">
       <div class="eyebrow"><span>Próximas horas</span><span id="sunLabel"></span></div>
       <div class="hours" id="hours"></div>
@@ -404,7 +428,6 @@
       <div class="eyebrow"><span>Próximamente</span></div>
       <div class="soon">
         <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>Correo</span>
-        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Noticias con IA</span>
       </div>
     </section>
 
@@ -915,6 +938,70 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     if (calEvents) { setStatus("¡Listo! Calendario conectado."); setTimeout(closeSettings, 900); }
   };
 
+  /* ---------- news briefing (editions at 8:30, 14:30 and 20:30) ---------- */
+  const NEWS_URL = CAL_PROXY + "noticias";
+  const NEWS_STORE = "midia:news";
+  const EDITIONS = [[8, 30], [14, 30], [20, 30]];
+  let newsBusy = false;
+
+  function edition() {
+    const now = new Date();
+    const mins = now.getHours() * 60 + now.getMinutes();
+    let day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let ed = [...EDITIONS].reverse().find(([h, m]) => h * 60 + m <= mins);
+    if (!ed) { ed = EDITIONS[EDITIONS.length - 1]; day = new Date(day.getTime() - DAY_MS); }
+    const label = `${ed[0]}:${String(ed[1]).padStart(2, "0")}`;
+    return { key: `${day.toDateString()}|${label}`, label };
+  }
+  const DAY_MS = 86400000;
+  const localName = () => (lastPlace && lastPlace !== "Tu ubicación" ? lastPlace : "");
+  const readNews = () => { try { return JSON.parse(localStorage.getItem(NEWS_STORE)); } catch { return null; } };
+
+  function renderNews(data, label) {
+    $("newsLabel").textContent = `Tu briefing · ${label}`;
+    const ext = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>`;
+    let html = data.intro ? `<p class="news-intro">${esc(data.intro)}</p>` : "";
+    for (const s of data.sections) {
+      if (!s.items.length) continue;
+      html += `<div class="news-sec">${esc(s.title)}</div>` + s.items.map((n) => `
+        <a class="news-item" href="${esc(n.url)}" target="_blank" rel="noopener">
+          <div class="nt">${esc(n.title)}</div>
+          ${n.summary ? `<div class="ns">${esc(n.summary)}</div>` : ""}
+          <div class="src">${esc(n.source || "Leer noticia")} ${ext}</div>
+        </a>`).join("");
+    }
+    $("news").innerHTML = html || `<p class="empty">No hay noticias ahora mismo.</p>`;
+  }
+
+  async function loadNews(force = false) {
+    if (!CAL_PROXY || newsBusy) return;
+    const ed = edition();
+    const key = `${ed.key}|${localName()}`;
+    const cached = readNews();
+    if (cached) renderNews(cached.data, cached.label);
+    if (cached && cached.key === key && !force) return;
+    if (!navigator.onLine) return;
+    newsBusy = true;
+    $("newsRefresh").classList.add("spin");
+    try {
+      const r = await fetch(NEWS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ local: localName() }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.sections) throw new Error("news");
+      try { localStorage.setItem(NEWS_STORE, JSON.stringify({ key, label: ed.label, data })); } catch {}
+      renderNews(data, ed.label);
+    } catch {
+      if (!cached) $("news").innerHTML = `<p class="empty">No he podido cargar las noticias. Prueba de nuevo en un rato.</p>`;
+    } finally {
+      newsBusy = false;
+      $("newsRefresh").classList.remove("spin");
+    }
+  }
+  $("newsRefresh").onclick = () => loadNews(true);
+
   /* ---------- data ---------- */
   async function fetchWeather(lat, lon) {
     const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -972,6 +1059,7 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
       render(w, a, loc.name);
       try { localStorage.setItem(STORE, JSON.stringify({ loc, w, a, t: Date.now() })); } catch {}
       lastLoad = Date.now();
+      loadNews();
     } catch (e) {
       const saved = readSaved();
       if (saved) {
@@ -992,6 +1080,7 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
   if (saved) { try { render(saved.w, saved.a, saved.loc.name); } catch {} }
   load();
   loadCalendar();
+  { const n = readNews(); if (n) renderNews(n.data, n.label); }
 
   $("refresh").onclick = () => { load(); loadCalendar(); };
   $("locate").onclick = () => load(true);

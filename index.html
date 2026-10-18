@@ -325,6 +325,15 @@
   .pet-lid { width: 9%; height: 4%; background: #9b5a30; border-bottom: 1px solid #2a1a10; border-radius: 50% 50% 40% 40%; }
   .pet-shades { height: 6%; transform: translateY(-50%); background: #111; border-radius: 2px 2px 40% 40%; }
   .pet-sprite[data-frame="sleep"] .pet-lid, .pet-sprite[data-frame="cool"] .pet-shades { display: block; }
+  .pet { transition: opacity .7s ease; }
+  .pet.inside { opacity: 0; pointer-events: none; }
+  .pet.inside .pet-sprite { pointer-events: none; }
+  /* the pets' house, half hidden at the right edge */
+  .pet-house { position: absolute; right: -55px; bottom: -9px; width: 110px; height: 87px; z-index: 1; pointer-events: auto; cursor: pointer; }
+  .pet-house img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; }
+  .pet-house .house-zz { position: absolute; left: 16px; bottom: 74px; font: 700 13px/1 ui-monospace, Menlo, monospace; color: #fff; display: none; text-shadow: 0 1px 4px rgba(0,0,0,.35); }
+  .pet-house.occupied .house-zz { display: block; animation: petZz 2.4s ease-in-out infinite; }
+  .pet-house .pet-bubble { left: 31px; bottom: 92px; }
   .pet-umbrella { position: absolute; left: 3px; bottom: 36px; width: 42px; height: 33px; display: none; }
   .pet.rainy .pet-umbrella { display: block; }
   .pet-zz { position: absolute; left: 34px; bottom: 34px; font: 700 12px/1 ui-monospace, Menlo, monospace; color: #fff; display: none; text-shadow: 0 1px 4px rgba(0,0,0,.3); }
@@ -945,6 +954,30 @@
   let petsMoodNow = { kind: "clear", isDay: true, temp: 18 };
   let petsLayerVisible = true, petsRaf = 0, petsLast = 0, petsMeetAt = 0;
 
+  // From 00:00 to 08:00 Alvin and Zogli sleep inside their house
+  const HOUSE = { w: 110, visible: 55, door: 31 }; // px; door = centre of the door from the house's left edge
+  const isHomeTime = () => new Date().getHours() < 8;
+  let homeNow = isHomeTime();
+  const house = document.createElement("div");
+  house.className = "pet-house";
+  house.setAttribute("role", "button");
+  house.setAttribute("aria-label", "La casa de Alvin y Zogli");
+  house.innerHTML = `<div class="pet-bubble"></div><img src="pets/casa.png" alt="" draggable="false"><div class="house-zz">z<sup>z</sup>z</div>`;
+  $("pets").appendChild(house);
+  const doorX = () => $("pets").clientWidth - HOUSE.visible + HOUSE.door;
+  house.addEventListener("click", () => {
+    const b = house.querySelector(".pet-bubble");
+    const inside = pets.every((p) => p.inside);
+    b.innerHTML = inside ? `<b class="pet-name">Shh…</b>Alvin y Zogli están durmiendo` : `<b class="pet-name">Casa</b>Aquí duermen Alvin y Zogli`;
+    const W = $("pets").clientWidth, bw = b.offsetWidth, center = doorX();
+    const shift = Math.min(W - 8 - bw / 2, Math.max(8 + bw / 2, center)) - center;
+    b.style.marginLeft = shift + "px";
+    b.style.setProperty("--tail", -shift + "px");
+    b.classList.add("show");
+    clearTimeout(house.sayTimer);
+    house.sayTimer = setTimeout(() => b.classList.remove("show"), 2600);
+  });
+
   const pets = PETS.map((def, idx) => {
     const el = document.createElement("div");
     el.className = "pet";
@@ -967,7 +1000,7 @@
     const zz = el.querySelector(".pet-zz");
     zz.style.left = def.w - 14 + "px";
     zz.style.bottom = def.h - 11 + "px";
-    const pet = { ...def, el, sprite, bubble: el.querySelector(".pet-bubble"),
+    const pet = { ...def, el, sprite, bubble: el.querySelector(".pet-bubble"), inside: false, placed: false,
       dir: idx % 2 ? -1 : 1, baseSpeed: def.speed, mode: "walk", state: "walk", until: 0, frame: "" };
     el.addEventListener("click", () => {
       petJump(pet);
@@ -1018,7 +1051,9 @@
   function petMood(pet) {
     const { kind, isDay, temp } = petsMoodNow;
     const wet = kind === "rain" || kind === "storm";
-    pet.mode = !isDay ? "sleep" : (temp >= 28 && (kind === "clear" || kind === "partly")) ? "sun" : "walk";
+    pet.mode = homeNow ? "home" : !isDay ? "sleep" : (temp >= 28 && (kind === "clear" || kind === "partly")) ? "sun" : "walk";
+    // opening the app at night: they are already inside, no need to watch them walk in
+    if (!pet.placed) { pet.placed = true; if (homeNow) petEnter(pet); }
     pet.speed = pet.baseSpeed * (wet ? 1.6 : 1);
     pet.el.classList.toggle("rainy", wet && pet.mode !== "sleep");
     pet.bubble.style.bottom = pet.h + (wet && pet.mode !== "sleep" ? 34 : 12) + "px";
@@ -1028,6 +1063,23 @@
     else if (pet.state !== "walk") { pet.state = "walk"; pet.until = 0; }
   }
   function petsMood(kind, isDay, temp) { petsMoodNow = { kind, isDay, temp }; pets.forEach(petMood); }
+
+  function petEnter(pet) {
+    pet.inside = true;
+    pet.x = doorX() - pet.w / 2;
+    pet.el.classList.add("inside");
+    pet.el.classList.remove("walking");
+    house.classList.toggle("occupied", pets.every((p) => p.inside));
+  }
+  function petLeave(pet, t) {
+    pet.inside = false;
+    pet.x = doorX() - pet.w / 2;
+    pet.dir = -1;
+    pet.state = "walk";
+    pet.until = t + 2500 + Math.random() * 2000;
+    pet.el.classList.remove("inside");
+    house.classList.remove("occupied");
+  }
 
   function petLine(pet) {
     const { kind, isDay, temp } = petsMoodNow;
@@ -1042,8 +1094,22 @@
     const dt = Math.min(0.05, (t - (petsLast || t)) / 1000);
     petsLast = t;
     const W = $("pets").clientWidth;
+    // check the clock: in at 00:00, out at 08:00
+    if (isHomeTime() !== homeNow) { homeNow = !homeNow; pets.forEach(petMood); }
     pets.forEach((pet, idx) => {
-      const max = W - pet.w;
+      const max = W - HOUSE.visible - pet.w + 8; // they walk up to the house
+      if (pet.mode !== "home" && pet.inside) petLeave(pet, t);
+      if (pet.mode === "home") {
+        if (pet.inside) return;
+        const target = doorX() - pet.w / 2;
+        if (reduceMotion || Math.abs(target - pet.x) < 2) { petEnter(pet); return; }
+        pet.dir = Math.sign(target - pet.x);
+        pet.x += pet.dir * Math.min(Math.abs(target - pet.x), pet.speed * 1.2 * dt);
+        pet.el.classList.add("walking");
+        pet.el.classList.toggle("left", pet.dir < 0);
+        pet.el.style.transform = `translateX(${pet.x.toFixed(1)}px)`;
+        return;
+      }
       if (pet.mode === "walk" && !reduceMotion) {
         if (t > pet.until) {
           // every few seconds: keep walking, stop to sit for a moment, or jump
@@ -1066,7 +1132,7 @@
     });
     // when Alvin and Zogli meet they say hello
     const [a, b] = pets;
-    if (a.mode === "walk" && b.mode === "walk" && Math.abs(a.x - b.x) < 26 && t > petsMeetAt) {
+    if (a.mode === "walk" && b.mode === "walk" && !a.inside && !b.inside && Math.abs(a.x - b.x) < 26 && t > petsMeetAt) {
       petsMeetAt = t + 25000;
       petJump(a); petJump(b);
       petSay(b, "¡Guau! ¡Hola, Alvin!");

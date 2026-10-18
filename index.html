@@ -886,26 +886,99 @@
     "..kkkkkkkkkkkk..",
   ];
   const ZOGLI_BASE = [
-    "..kk........kk..",
-    ".kbtk......ktbk.",
-    ".kbttk....kttbk.",
-    ".kbtttkkkktttbk.",
-    ".ktttlllllltttk.",
-    ".kttyyllllyyttk.",
-    ".ktyweyyyyweytk.",
-    ".ktyeeyyyyeeytk.",
-    ".kttyyykkyyyttk.",
-    ".ktttyyppyytttk.",
-    "kkksstyyyytssk..",
-    "kskxsstyytssxk..",
-    ".kkssstyytsssk..",
-    "..kttkyyyykttk..",
-    "..kkkkkkkkkkkk..",
+    "...kook............kook...",
+    "...kook......k.....kook...",
+    "...koook....kwk...koook...",
+    "...kopook..kcwck.koopok...",
+    "..kopppookkcwcwckoopppok..",
+    "..kopppookttwcttkoopppok..",
+    "..kopppptcycwycyctppppok..",
+    "..kopptycywyywycywytppok..",
+    "..koptbbywycyycycybbtpok..",
+    ".kooobyyttyyyyyyttyyboook.",
+    ".kokktyybgeyyyybgeyytkkok.",
+    "..kkttybeeeyyyyeeebyttkk..",
+    "..ktttyyeebyyyyeebyytttk..",
+    ".kokttbyyyyyhnyyyyybttkok.",
+    "..kttttbyyyynnyyyybttttk..",
+    ".kbkttbtyyrrkkrryytbttkbk.",
+    "..kbttktttrrrrrrtttkttbk..",
+    "...kbtkkxtbrrrrbttkktbk...",
+    "....ktkxxxxrrrrttytktk....",
+    ".....kkxxxxscycbtttkk.....",
+    ".....ksxxxxscycttbytk.....",
+    ".....kbxxxxscyctbtttk.....",
+    "....ktbsxxsscycttybbtk....",
+    "....ktbbsssscyctbttbtk....",
+    "...ktbttsssssssbttttbtk...",
+    "...ktbtyyyysxxsyyyytbtk...",
+    "..ktbtbytyysxxsytyybtbtk..",
+    "...kkkkkkkkkkkkkkkkkkkk...",
+  ];
+  const ZOGLI_SLEEP = [
+    "...kook............kook...",
+    "...kook......k.....kook...",
+    "...koook....kwk...koook...",
+    "...kopook..kcwck.koopok...",
+    "..kopppookkcwcwckoopppok..",
+    "..kopppookttwcttkoopppok..",
+    "..kopppptcycwycyctppppok..",
+    "..kopptycywyywycywytppok..",
+    "..koptbbywycyycycybbtpok..",
+    ".kooobyyttyyyyyyttyyboook.",
+    ".kokktyyyyyyyyyyyyyytkkok.",
+    "..kkttybkkkyyyykkkbyttkk..",
+    "..ktttyyyyyyyyyyyyyytttk..",
+    ".kokttbyyyyyhnyyyyybttkok.",
+    "..kttttbyyyynnyyyybttttk..",
+    ".kbkttbtyyrrkkrryytbttkbk.",
+    "..kbttktttrrrrrrtttkttbk..",
+    "...kbtkkxtbrrrrbttkktbk...",
+    "....ktkxxxxrrrrttytktk....",
+    ".....kkxxxxscycbtttkk.....",
+    ".....ksxxxxscycttbytk.....",
+    ".....kbxxxxscyctbtttk.....",
+    "....ktbsxxsscycttybbtk....",
+    "....ktbbsssscyctbttbtk....",
+    "...ktbttsssssssbttttbtk...",
+    "...ktbtyyyysxxsyyyytbtk...",
+    "..ktbtbytyysxxsytyybtbtk..",
+    "...kkkkkkkkkkkkkkkkkkkk...",
+  ];
+  const ZOGLI_COOL = [
+    "...kook............kook...",
+    "...kook......k.....kook...",
+    "...koook....kwk...koook...",
+    "...kopook..kcwck.koopok...",
+    "..kopppookkcwcwckoopppok..",
+    "..kopppookttwcttkoopppok..",
+    "..kopppptcycwycyctppppok..",
+    "..kopptycywyywycywytppok..",
+    "..koptbbywycyycycybbtpok..",
+    ".kooobyyttyyyyyyttyyboook.",
+    ".kokktykkkkkkkkkkkkytkkok.",
+    "..kkttykkhkkyykkhkkyttkk..",
+    "..ktttyykkkyyyykkkyytttk..",
+    ".kokttbyyyyyhnyyyyybttkok.",
+    "..kttttbyyyynnyyyybttttk..",
+    ".kbkttbtyyrrkkrryytbttkbk.",
+    "..kbttktttrrrrrrtttkttbk..",
+    "...kbtkkxtbrrrrbttkktbk...",
+    "....ktkxxxxrrrrttytktk....",
+    ".....kkxxxxscycbtttkk.....",
+    ".....ksxxxxscycttbytk.....",
+    ".....kbxxxxscyctbtttk.....",
+    "....ktbsxxsscycttybbtk....",
+    "....ktbbsssscyctbttbtk....",
+    "...ktbttsssssssbttttbtk...",
+    "...ktbtyyyysxxsyyyytbtk...",
+    "..ktbtbytyysxxsytyybtbtk..",
+    "...kkkkkkkkkkkkkkkkkkkk...",
   ];
 
   const PETS = [
     {
-      name: "Alvin", what: "el gato", sound: "¡Miau!", x: 40, speed: 26, depth: 0,
+      name: "Alvin", what: "el gato", sound: "¡Miau!", x: 40, speed: 26, depth: 0, w: 48, h: 45,
       colors: { k: "#2b2b2e", g: "#a3a3a8", d: "#6d6d73", l: "#cfcfd4", w: "#f6f6f8", p: "#f6a9b6", s: "#1a1a1d", h: "#5c5c66" },
       frames: {
         happy: ALVIN_BASE,
@@ -922,13 +995,10 @@
       },
     },
     {
-      name: "Zogli", what: "el Yorkshire", sound: "¡Guau!", x: 200, speed: 34, depth: -6,
-      colors: { k: "#26201b", b: "#8a5a2b", t: "#c98a4b", y: "#e8b77f", l: "#c9ccd2", s: "#5f6b78", x: "#3f4954", e: "#111111", w: "#ffffff", p: "#f2899a", h: "#5c5c66" },
-      frames: {
-        happy: ZOGLI_BASE,
-        sleep: withRows(ZOGLI_BASE, { 6: ".ktyyyyyyyyyytk.", 7: ".ktykkyyyykkytk." }),
-        cool: withRows(ZOGLI_BASE, { 6: ".ktkkkkkkkkkktk.", 7: ".ktykkyyyykkytk." }),
-      },
+      name: "Zogli", what: "el Yorkshire", sound: "¡Guau!", x: 200, speed: 34, depth: -4, w: 52, h: 56,
+      colors: { k: "#4a2c18", o: "#c98448", t: "#d79a5c", y: "#ecc28e", c: "#f6e3c4", w: "#ffffff", b: "#9a5a2c", r: "#7a3f22",
+        p: "#e39a9a", e: "#121212", g: "#ffffff", n: "#1b1b1b", h: "#6b6b6b", s: "#23283a", x: "#3d4357" },
+      frames: { happy: ZOGLI_BASE, sleep: ZOGLI_SLEEP, cool: ZOGLI_COOL },
       lines: {
         night: ["Zzz… guau", "Grr… zzz", "Guau… a dormir"],
         rain: ["¡Guau! ¡Paraguas!", "No me quiero mojar el pelo", "¡Guau, cuánta agua!"],
@@ -966,12 +1036,23 @@
     el.setAttribute("role", "button");
     el.setAttribute("aria-label", `${def.name}, ${def.what}. Tócalo para que salte`);
     el.style.bottom = def.depth + "px";
+    el.style.width = def.w + "px";
+    el.style.height = def.h + "px";
     el.style.zIndex = 2 + idx;
     el.innerHTML = `<div class="pet-bubble"></div>
       <div class="pet-flip"><div class="pet-shadow"></div><div class="pet-umbrella">${umbrellaSVG}</div>
       <div class="pet-sprite"></div><div class="pet-zz">z<sup>z</sup></div></div>`;
     $("pets").appendChild(el);
-    const pet = { ...def, el, sprite: el.querySelector(".pet-sprite"), bubble: el.querySelector(".pet-bubble"),
+    const sprite = el.querySelector(".pet-sprite");
+    sprite.style.width = def.w + "px";
+    sprite.style.height = def.h + "px";
+    const umb = el.querySelector(".pet-umbrella");
+    umb.style.left = (def.w - 42) / 2 + "px";
+    umb.style.bottom = def.h - 9 + "px";
+    const zz = el.querySelector(".pet-zz");
+    zz.style.left = def.w - 14 + "px";
+    zz.style.bottom = def.h - 11 + "px";
+    const pet = { ...def, el, sprite, bubble: el.querySelector(".pet-bubble"),
       dir: idx % 2 ? -1 : 1, baseSpeed: def.speed, mode: "walk", state: "walk", until: 0, frame: "" };
     el.addEventListener("click", () => {
       petJump(pet);
@@ -992,7 +1073,7 @@
     const b = pet.bubble;
     b.textContent = text;
     // keep the bubble inside the screen; the little tail still points at the pet
-    const W = pet.el.parentElement.clientWidth, bw = b.offsetWidth, center = pet.x + 24;
+    const W = pet.el.parentElement.clientWidth, bw = b.offsetWidth, center = pet.x + pet.w / 2;
     const shift = Math.min(W - 8 - bw / 2, Math.max(8 + bw / 2, center)) - center;
     b.style.marginLeft = shift + "px";
     b.style.setProperty("--tail", -shift + "px");
@@ -1017,6 +1098,7 @@
     pet.mode = !isDay ? "sleep" : (temp >= 28 && (kind === "clear" || kind === "partly")) ? "sun" : "walk";
     pet.speed = pet.baseSpeed * (wet ? 1.6 : 1);
     pet.el.classList.toggle("rainy", wet && pet.mode !== "sleep");
+    pet.bubble.style.bottom = pet.h + (wet && pet.mode !== "sleep" ? 34 : 12) + "px";
     pet.el.classList.toggle("sleeping", pet.mode === "sleep");
     petFrame(pet, pet.mode === "sleep" ? "sleep" : pet.mode === "sun" ? "cool" : "happy");
     if (pet.mode !== "walk") { pet.state = "sit"; pet.el.classList.remove("walking"); }
@@ -1036,8 +1118,9 @@
     petsRaf = requestAnimationFrame(petsTick);
     const dt = Math.min(0.05, (t - (petsLast || t)) / 1000);
     petsLast = t;
-    const max = $("pets").clientWidth - 48;
+    const W = $("pets").clientWidth;
     pets.forEach((pet, idx) => {
+      const max = W - pet.w;
       if (pet.mode === "walk" && !reduceMotion) {
         if (t > pet.until) {
           // every few seconds: keep walking, stop to sit for a moment, or jump

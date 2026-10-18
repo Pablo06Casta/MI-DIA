@@ -204,6 +204,54 @@
     margin-top: 8px; font: inherit; font-weight: 600; color: #fff;
     background: rgba(255,255,255,.14); border: 0; border-radius: 999px; padding: 7px 14px; cursor: pointer;
   }
+  /* agenda */
+  .agenda-list { display: flex; flex-direction: column; }
+  .ev { display: grid; grid-template-columns: 62px 3px 1fr; gap: 12px; align-items: stretch; padding: 10px 0; }
+  .ev + .ev { border-top: 1px solid rgba(255,255,255,.07); }
+  .ev .when { font-size: 15px; font-weight: 600; line-height: 1.25; }
+  .ev .when small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+  .ev .line { border-radius: 3px; background: var(--accent); }
+  .ev .what { min-width: 0; }
+  .ev .title { font-size: 16px; font-weight: 500; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .ev .meta { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev .meta .wet { color: #8fd3ff; }
+  .ev.past { opacity: .4; }
+  .ev.next .line { background: #ffd36e; }
+  .agenda-sub { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 2px; }
+  .empty { font-size: 15px; color: rgba(255,255,255,.75); line-height: 1.45; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 12px; font: inherit; font-size: 15px; font-weight: 600; color: #fff;
+    background: rgba(255,255,255,.14); border: 0; border-radius: 999px; padding: 10px 18px; cursor: pointer;
+  }
+  .btn.primary { background: #fff; color: var(--card-solid); }
+
+  /* settings sheet */
+  .sheet-bg { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .sheet-bg.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; z-index: 11; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto;
+    max-height: 88vh; overflow-y: auto;
+    background: #0d2540; border-radius: 28px 28px 0 0;
+    padding: 10px 20px calc(env(safe-area-inset-bottom) + 24px);
+    transform: translateY(105%); transition: transform .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .sheet.open { transform: none; }
+  .grab { width: 40px; height: 5px; border-radius: 5px; background: rgba(255,255,255,.25); margin: 0 auto 16px; }
+  .sheet h2 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .sheet h3 { font-size: 16px; font-weight: 600; margin: 20px 0 8px; }
+  .sheet p, .sheet li { font-size: 15px; line-height: 1.45; color: rgba(255,255,255,.78); }
+  .sheet ol { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+  .sheet textarea {
+    width: 100%; min-height: 96px; margin-top: 10px; padding: 12px 14px; border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: #fff;
+    font: 14px/1.4 ui-monospace, Menlo, monospace; resize: vertical;
+  }
+  .sheet .note { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .sheet .row { display: flex; gap: 10px; margin-top: 4px; }
+  .sheet .status { font-size: 14px; margin-top: 10px; min-height: 20px; color: #9ff0d0; }
+  .sheet .status.err { color: #ffb08a; }
+
   [hidden] { display: none !important; }
 
   .skeleton { color: transparent !important; background: rgba(255,255,255,.1); border-radius: 8px; animation: pulse 1.4s ease-in-out infinite; }
@@ -219,6 +267,9 @@
   <header class="topbar">
     <div class="pill"><span class="city" id="city">Buscando…</span></div>
     <div class="pill">
+      <button id="openSettings" aria-label="Ajustes">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </button>
       <button id="locate" aria-label="Usar mi ubicación">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
       </button>
@@ -316,6 +367,14 @@
       </div>
     </section>
 
+    <section class="card" id="agendaCard">
+      <div class="eyebrow"><span>Agenda</span><span id="agendaCount"></span></div>
+      <div id="agenda">
+        <p class="empty">Conecta tu calendario de iCloud para ver aquí tus planes del día.</p>
+        <button class="btn primary" data-open-settings>Conectar calendario</button>
+      </div>
+    </section>
+
     <section class="card">
       <div class="eyebrow"><span>Próximas horas</span><span id="sunLabel"></span></div>
       <div class="hours" id="hours"></div>
@@ -335,7 +394,6 @@
     <section class="card">
       <div class="eyebrow"><span>Próximamente</span></div>
       <div class="soon">
-        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendario</span>
         <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>Correo</span>
         <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Noticias con IA</span>
       </div>
@@ -345,10 +403,39 @@
   </main>
 </div>
 
+<div class="sheet-bg" id="sheetBg"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="grab"></div>
+  <h2 id="sheetTitle">Ajustes</h2>
+  <p>Conecta tu calendario de iCloud para ver tu agenda en el resumen del día.</p>
+
+  <h3>Cómo conseguir el enlace (en el iPhone)</h3>
+  <ol>
+    <li>Abre la app <b>Calendario</b> y toca <b>Calendarios</b> (abajo).</li>
+    <li>Toca la <b>ⓘ</b> junto al calendario que quieras.</li>
+    <li>Activa <b>Calendario público</b> y toca <b>Compartir enlace… → Copiar</b>.</li>
+    <li>Pégalo aquí abajo. Si tienes varios calendarios, pon un enlace por línea.</li>
+  </ol>
+
+  <textarea id="calLinks" placeholder="webcal://p00-caldav.icloud.com/published/2/…" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+  <p class="note">Los enlaces se guardan solo en este dispositivo, nunca en internet. Quien tenga uno de esos enlaces puede ver ese calendario, así que no los compartas.</p>
+  <div class="status" id="calStatus"></div>
+  <div class="row">
+    <button class="btn primary" id="saveCal">Guardar</button>
+    <button class="btn" id="closeSettings">Cerrar</button>
+  </div>
+</aside>
+
+<script src="calendar.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
   const STORE = "midia:last";
+  // Puente de Cloudflare que deja a la app leer los calendarios de iCloud (ver cloudflare/worker.js).
+  const CAL_PROXY = "";
+  const CAL_LINKS = "midia:cal";
+  const CAL_CACHE = "midia:calcache";
+  let lastW = null, lastA = null, lastPlace = "", lastSummary = null, calEvents = null;
   const DEFAULT = { lat: 40.4168, lon: -3.7038, name: "Madrid" };
   let lastLoad = 0;
 
@@ -542,10 +629,10 @@
     $("greeting").textContent = greeting(+C.time.slice(11, 13));
     $("dateLabel").textContent = now.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short" });
 
-    const s = buildSummary(w, a, place);
-    $("summary").innerHTML = s.html;
-    $("tipText").textContent = s.tip;
-    $("tip").hidden = false;
+    lastW = w; lastA = a; lastPlace = place;
+    lastSummary = buildSummary(w, a, place);
+    paintDayText();
+    renderAgenda();
 
     $("vRain").textContent = `${D.precipitation_probability_max[0] ?? 0}%` + (D.precipitation_sum[0] > 0 ? ` · ${D.precipitation_sum[0].toFixed(1)} mm` : "");
     $("vCloud").textContent = `${C.cloud_cover}%`;
@@ -608,6 +695,131 @@
     const upd = new Date();
     $("foot").innerHTML = `Actualizado ${upd.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })} · Datos: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>`;
   }
+
+  /* ---------- calendar ---------- */
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const clock = (d) => d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const readLinks = () => { try { return JSON.parse(localStorage.getItem(CAL_LINKS)) || []; } catch { return []; } };
+
+  // probability of rain at the hour an event starts (from the hourly forecast)
+  function rainAt(d) {
+    if (!lastW) return null;
+    const p = (n) => String(n).padStart(2, "0");
+    const key = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:00`;
+    const i = lastW.hourly.time.indexOf(key);
+    return i < 0 ? null : lastW.hourly.precipitation_probability[i];
+  }
+
+  function splitDays() {
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const today = calEvents.filter((e) => e.allDay ? sameDay(e.start, now) || (e.start <= now && e.end > now) : e.start < tomorrow);
+    const next = calEvents.filter((e) => sameDay(e.start, tomorrow));
+    return { now, today, next };
+  }
+
+  function paintDayText() {
+    if (!lastSummary) return;
+    let html = lastSummary.html, tip = lastSummary.tip;
+    if (calEvents) {
+      const { now, today } = splitDays();
+      const upcoming = today.filter((e) => !e.allDay && e.end > now);
+      const nextEv = upcoming.find((e) => e.start > now) || upcoming[0];
+      if (!today.length) html += " No tienes nada en la agenda hoy.";
+      else if (!upcoming.length) html += ` Ya has terminado tu agenda de hoy.`;
+      else {
+        const n = upcoming.length;
+        html += ` Te ${n === 1 ? "queda <b>1 plan</b>" : `quedan <b>${n} planes</b>`} hoy` +
+          (nextEv.start > now ? `; el próximo, <b>${esc(nextEv.title)}</b>, a las ${clock(nextEv.start)}.` : `; ahora mismo: <b>${esc(nextEv.title)}</b>.`);
+      }
+      const wet = upcoming.find((e) => (rainAt(e.start) ?? 0) >= 50);
+      if (wet) tip = `Puede llover durante «${wet.title}» (${clock(wet.start)}). ` + tip;
+    }
+    $("summary").innerHTML = html;
+    $("tipText").textContent = tip;
+    $("tip").hidden = false;
+  }
+
+  function eventRow(e, now) {
+    const past = e.end <= now;
+    const live = !e.allDay && e.start <= now && e.end > now;
+    const rain = !e.allDay && !past ? rainAt(e.start) : null;
+    const meta = [e.location ? esc(e.location) : "", rain >= 40 ? `<span class="wet">${rain}% lluvia</span>` : ""].filter(Boolean).join(" · ");
+    const when = e.allDay ? "Todo el día" : `${clock(e.start)}<small>${live ? "ahora" : clock(e.end)}</small>`;
+    return `<div class="ev ${past && !e.allDay ? "past" : ""} ${live ? "next" : ""}">
+      <div class="when">${when}</div><div class="line"></div>
+      <div class="what"><div class="title">${esc(e.title || "Sin título")}</div>${meta ? `<div class="meta">${meta}</div>` : ""}</div>
+    </div>`;
+  }
+
+  function renderAgenda() {
+    const box = $("agenda");
+    if (!readLinks().length) {
+      $("agendaCount").textContent = "";
+      box.innerHTML = `<p class="empty">Conecta tu calendario de iCloud para ver aquí tus planes del día.</p>
+        <button class="btn primary" data-open-settings>Conectar calendario</button>`;
+      return;
+    }
+    if (!calEvents) { box.innerHTML = `<p class="empty skeleton">Cargando tu agenda…</p>`; return; }
+    const { now, today, next } = splitDays();
+    $("agendaCount").textContent = today.length ? `${today.length} hoy` : "";
+    let html = today.length
+      ? `<div class="agenda-list">${today.map((e) => eventRow(e, now)).join("")}</div>`
+      : `<p class="empty">Nada en tu agenda hoy.</p>`;
+    if (next.length) {
+      html += `<div class="agenda-sub">Mañana</div><div class="agenda-list">${next.slice(0, 3).map((e) => eventRow(e, now)).join("")}</div>`;
+      if (next.length > 3) html += `<p class="note" style="font-size:13px;color:var(--muted);margin-top:6px">y ${next.length - 3} más</p>`;
+    }
+    box.innerHTML = html;
+  }
+
+  const revive = (list) => list.map((e) => ({ ...e, start: new Date(e.start), end: new Date(e.end) }));
+
+  async function loadCalendar() {
+    const links = readLinks();
+    if (!links.length) { calEvents = null; renderAgenda(); paintDayText(); return; }
+    if (!calEvents) {
+      try { const c = JSON.parse(localStorage.getItem(CAL_CACHE)); if (c) calEvents = revive(c.events); } catch {}
+      renderAgenda(); paintDayText();
+    }
+    try {
+      const { events, failed } = await window.MiDiaCal.load(links, CAL_PROXY);
+      calEvents = events;
+      try { localStorage.setItem(CAL_CACHE, JSON.stringify({ events, t: Date.now() })); } catch {}
+      setStatus(failed ? `${failed} calendario(s) no se han podido leer.` : "", !!failed);
+    } catch (e) {
+      if (!calEvents) $("agenda").innerHTML = `<p class="empty">${e.message === "noproxy"
+        ? "Falta activar el puente del calendario (ver instrucciones)."
+        : "No he podido leer tu calendario. Revisa el enlace en Ajustes."}</p>
+        <button class="btn" data-open-settings>Abrir ajustes</button>`;
+      setStatus("No he podido leer el calendario. Revisa que el enlace sea correcto y que el calendario sea público.", true);
+      return;
+    }
+    renderAgenda(); paintDayText();
+  }
+
+  /* ---------- settings sheet ---------- */
+  function setStatus(msg, err) { const s = $("calStatus"); s.textContent = msg; s.classList.toggle("err", !!err); }
+  function openSettings() {
+    $("calLinks").value = readLinks().join("\n");
+    setStatus("");
+    $("sheet").classList.add("open"); $("sheetBg").classList.add("open");
+  }
+  function closeSettings() { $("sheet").classList.remove("open"); $("sheetBg").classList.remove("open"); }
+  $("openSettings").onclick = openSettings;
+  $("closeSettings").onclick = closeSettings;
+  $("sheetBg").onclick = closeSettings;
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-open-settings]")) openSettings(); });
+  $("saveCal").onclick = async () => {
+    const links = $("calLinks").value.split(/\s+/).map((l) => l.trim()).filter(Boolean);
+    try { localStorage.setItem(CAL_LINKS, JSON.stringify(links)); localStorage.removeItem(CAL_CACHE); } catch {}
+    calEvents = null;
+    if (!links.length) { setStatus("Calendario desconectado."); loadCalendar(); return; }
+    setStatus("Leyendo tu calendario…");
+    await loadCalendar();
+    if (calEvents) { setStatus("¡Listo! Calendario conectado."); setTimeout(closeSettings, 900); }
+  };
 
   /* ---------- data ---------- */
   async function fetchWeather(lat, lon) {
@@ -685,11 +897,12 @@
   const saved = readSaved();
   if (saved) { try { render(saved.w, saved.a, saved.loc.name); } catch {} }
   load();
+  loadCalendar();
 
-  $("refresh").onclick = () => load();
+  $("refresh").onclick = () => { load(); loadCalendar(); };
   $("locate").onclick = () => load(true);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && Date.now() - lastLoad > 15 * 60 * 1000) load();
+    if (document.visibilityState === "visible" && Date.now() - lastLoad > 15 * 60 * 1000) { load(); loadCalendar(); }
   });
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {

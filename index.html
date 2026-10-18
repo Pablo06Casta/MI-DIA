@@ -301,7 +301,7 @@
   .skeleton { color: transparent !important; background: rgba(255,255,255,.1); border-radius: 8px; animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .5; } }
 
-  /* Michi, the pixel cat */
+  /* Alvin, the pixel cat */
   .cat-layer { position: absolute; left: 0; right: 0; bottom: 9%; height: 0; z-index: 1; pointer-events: none; }
   .cat { position: absolute; bottom: 0; left: 0; width: 48px; height: 48px; pointer-events: auto; cursor: pointer; -webkit-user-select: none; user-select: none; }
   .cat-flip { position: absolute; inset: 0; transform-origin: 50% 100%; }
@@ -401,7 +401,7 @@
     </svg>
     <div class="fx" id="fx"></div>
     <div class="cat-layer">
-      <div class="cat" id="cat" role="button" aria-label="Michi, el gato. Tócalo para que salte">
+      <div class="cat" id="cat" role="button" aria-label="Alvin, el gato. Tócalo para que salte">
         <div class="cat-bubble" id="catBubble"></div>
         <div class="cat-flip">
           <div class="cat-shadow"></div>
@@ -861,7 +861,7 @@
   }
   setInterval(() => { if (lastW) { paintRainSoon(); paintDayText(); } }, 5 * 60000);
 
-  /* ---------- Michi, the pixel cat that lives in the landscape ---------- */
+  /* ---------- Alvin, the pixel cat that lives in the landscape ---------- */
   const CAT_COLORS = { k: "#2b2b2e", g: "#a3a3a8", d: "#6d6d73", l: "#cfcfd4", w: "#f6f6f8", p: "#f6a9b6", s: "#1a1a1d", h: "#5c5c66" };
   const CAT_BASE = [
     ".kk..........kk.",
@@ -930,12 +930,12 @@
   function catSay(text) {
     const b = $("catBubble");
     b.textContent = text;
-    // keep the bubble inside the screen; the little tail still points at Michi
+    // keep the bubble inside the screen; the little tail still points at Alvin
     const W = cat.el.parentElement.clientWidth, bw = b.offsetWidth, center = cat.x + 24;
     const shift = Math.min(W - 8 - bw / 2, Math.max(8 + bw / 2, center)) - center;
     b.style.marginLeft = shift + "px";
     b.style.setProperty("--tail", -shift + "px");
-    // Michi stops walking while talking
+    // Alvin stops walking while talking
     if (cat.mode === "walk") { cat.state = "sit"; cat.until = performance.now() + 2600; }
     b.classList.add("show");
     clearTimeout(cat.sayTimer);
@@ -951,7 +951,7 @@
     setTimeout(() => el.classList.remove("jump"), 720);
   }
 
-  // How Michi behaves with today's weather
+  // How Alvin behaves with today's weather
   function catMood(kind, isDay, temp) {
     cat.mood = { kind, isDay, temp };
     const wet = kind === "rain" || kind === "storm";
@@ -972,7 +972,7 @@
     if (kind === "snow") return pick(["¡Miau! ¡Nieve!", "Tengo las patitas frías"]);
     if (temp >= 28) return pick(["Miau, qué calorcito", "Aquí al solecito… prrr"]);
     if (temp < 10) return pick(["Miau… qué frío", "Abrígate, humano"]);
-    return pick(["¡Miau!", "¡Prrr!", "Miau, ¿salimos?", "¡Hola! Soy Michi", "Miau, buen día"]);
+    return pick(["¡Miau!", "¡Prrr!", "Miau, ¿salimos?", "¡Hola! Soy Alvin", "Miau, buen día"]);
   }
 
   cat.el.addEventListener("click", () => {

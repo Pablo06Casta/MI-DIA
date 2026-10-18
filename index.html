@@ -320,6 +320,11 @@
     82% { transform: translateY(0) scale(1.12, .84); }
     100% { transform: none; }
   }
+  .pet-sprite img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; }
+  .pet-lid, .pet-shades { position: absolute; display: none; transform: translate(-50%, -50%); }
+  .pet-lid { width: 9%; height: 4%; background: #9b5a30; border-bottom: 1px solid #2a1a10; border-radius: 50% 50% 40% 40%; }
+  .pet-shades { height: 6%; transform: translateY(-50%); background: #111; border-radius: 2px 2px 40% 40%; }
+  .pet-sprite[data-frame="sleep"] .pet-lid, .pet-sprite[data-frame="cool"] .pet-shades { display: block; }
   .pet-umbrella { position: absolute; left: 3px; bottom: 36px; width: 42px; height: 33px; display: none; }
   .pet.rainy .pet-umbrella { display: block; }
   .pet-zz { position: absolute; left: 34px; bottom: 34px; font: 700 12px/1 ui-monospace, Menlo, monospace; color: #fff; display: none; text-shadow: 0 1px 4px rgba(0,0,0,.3); }
@@ -885,97 +890,6 @@
     "kkkggkwwwwkggk..",
     "..kkkkkkkkkkkk..",
   ];
-  const ZOGLI_BASE = [
-    "...kook............kook...",
-    "...kook......k.....kook...",
-    "...koook....kwk...koook...",
-    "...kopook..kcwck.koopok...",
-    "..kopppookkcwcwckoopppok..",
-    "..kopppookttwcttkoopppok..",
-    "..kopppptcycwycyctppppok..",
-    "..kopptycywyywycywytppok..",
-    "..koptbbywycyycycybbtpok..",
-    ".kooobyyttyyyyyyttyyboook.",
-    ".kokktyybgeyyyybgeyytkkok.",
-    "..kkttybeeeyyyyeeebyttkk..",
-    "..ktttyyeebyyyyeebyytttk..",
-    ".kokttbyyyyyhnyyyyybttkok.",
-    "..kttttbyyyynnyyyybttttk..",
-    ".kbkttbtyyrrkkrryytbttkbk.",
-    "..kbttktttrrrrrrtttkttbk..",
-    "...kbtkkxtbrrrrbttkktbk...",
-    "....ktkxxxxrrrrttytktk....",
-    ".....kkxxxxscycbtttkk.....",
-    ".....ksxxxxscycttbytk.....",
-    ".....kbxxxxscyctbtttk.....",
-    "....ktbsxxsscycttybbtk....",
-    "....ktbbsssscyctbttbtk....",
-    "...ktbttsssssssbttttbtk...",
-    "...ktbtyyyysxxsyyyytbtk...",
-    "..ktbtbytyysxxsytyybtbtk..",
-    "...kkkkkkkkkkkkkkkkkkkk...",
-  ];
-  const ZOGLI_SLEEP = [
-    "...kook............kook...",
-    "...kook......k.....kook...",
-    "...koook....kwk...koook...",
-    "...kopook..kcwck.koopok...",
-    "..kopppookkcwcwckoopppok..",
-    "..kopppookttwcttkoopppok..",
-    "..kopppptcycwycyctppppok..",
-    "..kopptycywyywycywytppok..",
-    "..koptbbywycyycycybbtpok..",
-    ".kooobyyttyyyyyyttyyboook.",
-    ".kokktyyyyyyyyyyyyyytkkok.",
-    "..kkttybkkkyyyykkkbyttkk..",
-    "..ktttyyyyyyyyyyyyyytttk..",
-    ".kokttbyyyyyhnyyyyybttkok.",
-    "..kttttbyyyynnyyyybttttk..",
-    ".kbkttbtyyrrkkrryytbttkbk.",
-    "..kbttktttrrrrrrtttkttbk..",
-    "...kbtkkxtbrrrrbttkktbk...",
-    "....ktkxxxxrrrrttytktk....",
-    ".....kkxxxxscycbtttkk.....",
-    ".....ksxxxxscycttbytk.....",
-    ".....kbxxxxscyctbtttk.....",
-    "....ktbsxxsscycttybbtk....",
-    "....ktbbsssscyctbttbtk....",
-    "...ktbttsssssssbttttbtk...",
-    "...ktbtyyyysxxsyyyytbtk...",
-    "..ktbtbytyysxxsytyybtbtk..",
-    "...kkkkkkkkkkkkkkkkkkkk...",
-  ];
-  const ZOGLI_COOL = [
-    "...kook............kook...",
-    "...kook......k.....kook...",
-    "...koook....kwk...koook...",
-    "...kopook..kcwck.koopok...",
-    "..kopppookkcwcwckoopppok..",
-    "..kopppookttwcttkoopppok..",
-    "..kopppptcycwycyctppppok..",
-    "..kopptycywyywycywytppok..",
-    "..koptbbywycyycycybbtpok..",
-    ".kooobyyttyyyyyyttyyboook.",
-    ".kokktykkkkkkkkkkkkytkkok.",
-    "..kkttykkhkkyykkhkkyttkk..",
-    "..ktttyykkkyyyykkkyytttk..",
-    ".kokttbyyyyyhnyyyyybttkok.",
-    "..kttttbyyyynnyyyybttttk..",
-    ".kbkttbtyyrrkkrryytbttkbk.",
-    "..kbttktttrrrrrrtttkttbk..",
-    "...kbtkkxtbrrrrbttkktbk...",
-    "....ktkxxxxrrrrttytktk....",
-    ".....kkxxxxscycbtttkk.....",
-    ".....ksxxxxscycttbytk.....",
-    ".....kbxxxxscyctbtttk.....",
-    "....ktbsxxsscycttybbtk....",
-    "....ktbbsssscyctbttbtk....",
-    "...ktbttsssssssbttttbtk...",
-    "...ktbtyyyysxxsyyyytbtk...",
-    "..ktbtbytyysxxsytyybtbtk..",
-    "...kkkkkkkkkkkkkkkkkkkk...",
-  ];
-
   const PETS = [
     {
       name: "Alvin", what: "el gato", sound: "¡Miau!", x: 40, speed: 26, depth: 0, w: 48, h: 45,
@@ -995,10 +909,9 @@
       },
     },
     {
-      name: "Zogli", what: "el Yorkshire", sound: "¡Guau!", x: 200, speed: 34, depth: -4, w: 52, h: 56,
-      colors: { k: "#4a2c18", o: "#c98448", t: "#d79a5c", y: "#ecc28e", c: "#f6e3c4", w: "#ffffff", b: "#9a5a2c", r: "#7a3f22",
-        p: "#e39a9a", e: "#121212", g: "#ffffff", n: "#1b1b1b", h: "#6b6b6b", s: "#23283a", x: "#3d4357" },
-      frames: { happy: ZOGLI_BASE, sleep: ZOGLI_SLEEP, cool: ZOGLI_COOL },
+      name: "Zogli", what: "el Yorkshire", sound: "¡Guau!", x: 200, speed: 34, depth: -4, w: 50, h: 70,
+      // your own picture of Zogli; eyes in % of the picture (to close them or add sunglasses)
+      image: "pets/zogli.png", eyes: [[44.2, 39.9], [69.1, 39.3]],
       lines: {
         night: ["Zzz… guau", "Grr… zzz", "Guau… a dormir"],
         rain: ["¡Guau! ¡Paraguas!", "No me quiero mojar el pelo", "¡Guau, cuánta agua!"],
@@ -1066,7 +979,15 @@
   function petFrame(pet, name) {
     if (pet.frame === name) return;
     pet.frame = name;
-    pet.sprite.innerHTML = pixelSVG(pet.frames[name], pet.colors);
+    if (!pet.image) { pet.sprite.innerHTML = pixelSVG(pet.frames[name], pet.colors); return; }
+    if (!pet.sprite.firstChild) {
+      const [[lx, ly], [rx, ry]] = pet.eyes;
+      const lid = (x, y) => `<i class="pet-lid" style="left:${x}%;top:${y}%"></i>`;
+      pet.sprite.innerHTML = `<img src="${pet.image}" alt="" draggable="false">` +
+        lid(lx, ly) + lid(rx, ry) +
+        `<i class="pet-shades" style="left:${lx - 7}%;width:${rx - lx + 14}%;top:${(ly + ry) / 2}%"></i>`;
+    }
+    pet.sprite.dataset.frame = name;
   }
 
   function petSay(pet, text) {

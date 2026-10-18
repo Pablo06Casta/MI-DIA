@@ -307,16 +307,16 @@ async function forecast(sub, params) {
   return fetch(`https://api.open-meteo.com/v1/forecast?latitude=${sub.lat}&longitude=${sub.lon}&${params}&timezone=${encodeURIComponent(sub.tz)}`).then((r) => r.json());
 }
 
-// "Empieza a llover en unos 30 min": seco ahora y en 15 min, y lluvia a los 30–45 min.
+// "Empieza a llover en 30 min": seco ahora y en 15 min, y lluvia en el tramo que empieza dentro de 30 min.
+// Como el puente mira cada 15 minutos, si la lluvia llega más tarde se avisa en una vuelta posterior.
 async function rainAlert(sub) {
   const w = await forecast(sub, "minutely_15=precipitation&forecast_minutely_15=4");
   const p = w.minutely_15?.precipitation || [];
-  if (p.length < 4 || p[0] >= WET || p[1] >= WET) return null;
-  const k = p[2] >= WET ? 2 : p[3] >= WET ? 3 : -1;
-  if (k < 0) return null;
+  if (p.length < 4 || p[0] >= WET || p[1] >= WET || p[2] < WET) return null;
+  const k = 2;
   const startsAt = new Date(w.minutely_15.time[k] + "Z").getTime() - (w.utc_offset_seconds || 0) * 1000;
-  const mins = Math.max(15, Math.round((startsAt - Date.now()) / 300000) * 5);
-  const mmh = Math.max(p[2], p[3]) * 4;
+  const mins = Math.min(30, Math.max(20, Math.round((startsAt - Date.now()) / 300000) * 5));
+  const mmh = p[2] * 4;
   const kind = mmh < 2 ? "lluvia débil" : mmh < 8 ? "lluvia moderada" : "lluvia fuerte";
   return {
     title: `Va a llover${sub.place ? ` en ${sub.place}` : ""}`,

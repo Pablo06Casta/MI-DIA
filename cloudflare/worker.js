@@ -259,11 +259,26 @@ async function push(request, env, origin, cors, path) {
     await env.MIDIA.put(id, JSON.stringify(sub));
     return json({ ok: true });
   }
+  if (path === "/push/check") {
+    const sub = await env.MIDIA.get(id, "json");
+    if (!sub) return json({ error: "no suscrito" }, 404);
+    return json(await checkReport(sub));
+  }
+  if (path === "/push/simulate") {
+    const sub = await env.MIDIA.get(id, "json");
+    if (!sub) return json({ error: "no suscrito" }, 404);
+    const kind = body.kind === "cold" ? "cold" : "rain";
+    const log = [];
+    const res = await checkAlerts(env, sub, log, kind);
+    if (res === "gone") { await env.MIDIA.delete(id); return json({ ok: false, log, error: "el móvil ya no acepta avisos" }); }
+    return json({ ok: log.some((l) => l.includes("aviso enviado")), log });
+  }
   if (path === "/push/status") {
     const sub = await env.MIDIA.get(id, "json");
     const cron = await env.MIDIA.get("cron:last", "json");
     return json({
       subscribed: !!sub,
+      place: sub?.place || null, lat: sub?.lat ?? null, lon: sub?.lon ?? null, tz: sub?.tz || null,
       coldHour: sub?.coldHour || null,
       lastRain: sub?.lastRain || null,
       cronLast: cron?.t || null,
@@ -291,30 +306,47 @@ const RAIN_EVERY = 3 * 3600 * 1000; // como mucho un aviso de lluvia cada 3 hora
 const WET = 0.1;                      // mm en 15 minutos
 
 // Devuelve la suscripción actualizada si ha enviado algo, "gone" si el móvil ya no existe, o null.
-async function checkAlerts(env, sub, log = []) {
+// sim = "rain" | "cold": prueba real con datos simulados (ignora horarios y límites, no guarda nada).
+async function checkAlerts(env, sub, log = [], sim = null) {
   const local = localNow(sub.tz);
   let changed = null;
   const send = async (msg) => {
-    const status = await sendPush(env, sub.subscription, JSON.stringify({ ...msg, url: "./" }));
+    const body = sim ? "Simulación: " + msg.body : msg.body;
+    const status = await sendPush(env, sub.subscription, JSON.stringify({ ...msg, body, url: "./" }));
     if (status === 404 || status === 410) throw "gone";
+    if (!(status >= 200 && status < 300)) log.push(`el servicio de avisos del móvil respondió ${status}`);
     return status >= 200 && status < 300;
   };
+  const errText = (e) => String(e?.message || e).slice(0, 100);
   try {
     // 1) lluvia en unos 30 minutos (solo de 7:00 a 23:00)
-    if (local.hour < 7 || local.hour >= 23) log.push("lluvia: fuera de horario (7:00–23:00)");
-    else if (Date.now() - (sub.lastRain || 0) <= RAIN_EVERY) log.push("lluvia: ya avisó hace menos de 3 h");
-    else {
-      const msg = await rainAlert(sub, log);
-      if (msg && await send(msg)) { changed = { ...(changed || sub), lastRain: Date.now() }; log.push("lluvia: aviso enviado"); }
+    try {
+      if (!sim && (local.hour < 7 || local.hour >= 23)) log.push("lluvia: fuera de horario (7:00–23:00)");
+      else if (!sim && Date.now() - (sub.lastRain || 0) <= RAIN_EVERY) log.push("lluvia: ya avisó hace menos de 3 h");
+      else if (!sim || sim === "rain") {
+        const msg = await rainAlert(sub, log, sim === "rain");
+        if (msg && await send(msg)) {
+          if (!sim) changed = { ...(changed || sub), lastRain: Date.now() };
+          log.push("lluvia: aviso enviado");
+        }
+      }
+    } catch (e) {
+      if (e === "gone") throw e;
+      log.push("lluvia: error: " + errText(e));
     }
     // 2) la noche antes: ¿mañana baja mucho la temperatura?
-    const [h, m] = (sub.coldHour || "21:00").split(":").map(Number);
-    const inWindow = local.minutes >= h * 60 + m && local.minutes < h * 60 + m + 120;
-    if (inWindow && sub.lastCold !== local.date) {
-      const msg = await coldAlert(sub);
-      if (msg) await send(msg);
-      log.push(msg ? "frío: aviso enviado" : "frío: mañana no baja mucho, sin aviso");
-      changed = { ...(changed || sub), lastCold: local.date };
+    try {
+      const [h, m] = (sub.coldHour || "21:00").split(":").map(Number);
+      const inWindow = local.minutes >= h * 60 + m && local.minutes < h * 60 + m + 120;
+      if (sim === "cold" || (!sim && inWindow && sub.lastCold !== local.date)) {
+        const msg = await coldAlert(sub, sim === "cold");
+        if (msg && await send(msg)) log.push("frío: aviso enviado");
+        else if (!msg) log.push("frío: mañana no baja mucho, sin aviso");
+        if (!sim) changed = { ...(changed || sub), lastCold: local.date };
+      }
+    } catch (e) {
+      if (e === "gone") throw e;
+      log.push("frío: error: " + errText(e)); // no se marca como hecho: se reintenta en 15 min
     }
   } catch (e) {
     if (e === "gone") return "gone";
@@ -323,47 +355,110 @@ async function checkAlerts(env, sub, log = []) {
   return changed;
 }
 
+// Open-Meteo con un reintento; si falla, el error se ve en el diagnóstico (antes se tomaba por «sin lluvia»).
 async function forecast(sub, params) {
-  return fetch(`https://api.open-meteo.com/v1/forecast?latitude=${sub.lat}&longitude=${sub.lon}&${params}&timezone=${encodeURIComponent(sub.tz)}`).then((r) => r.json());
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${sub.lat}&longitude=${sub.lon}&${params}&timezone=${encodeURIComponent(sub.tz)}`;
+  let last;
+  for (let i = 0; i < 2; i++) {
+    try {
+      const r = await fetch(url, { headers: { "User-Agent": "MiDia/1.0 (pablo06casta.github.io/MI-DIA)" } });
+      if (r.ok) return await r.json();
+      last = new Error("Open-Meteo respondió " + r.status);
+    } catch (e) {
+      last = e;
+    }
+    await new Promise((res) => setTimeout(res, 600));
+  }
+  throw last;
 }
 
-// "Empieza a llover en 30 min": seco ahora y lluvia en el tramo que empieza dentro de 30 min.
-// Si la previsión cambia y la lluvia aparece ya a 15 min, avisa igualmente (mejor tarde que nunca).
-// Como el puente mira cada 15 minutos, si la lluvia llega más tarde se avisa en una vuelta posterior.
-async function rainAlert(sub, log = []) {
-  const w = await forecast(sub, "minutely_15=precipitation&forecast_minutely_15=4");
-  const p = w.minutely_15?.precipitation || [];
-  log.push("lluvia prevista (mm cada 15 min): " + p.map((x) => x.toFixed(1)).join(" · "));
-  if (p.length < 4 || p[0] >= WET) return null;
+// Decide si hay que avisar de lluvia. p = mm de los próximos 4 tramos de 15 min; starts = cuándo empieza cada uno (ms).
+function rainDecision(sub, p, starts, now = Date.now()) {
+  if (p.length < 4) return { fire: false, why: "el servicio del tiempo no ha dado datos de lluvia" };
+  if (p[0] >= WET) return { fire: false, why: "ya está lloviendo ahora mismo" };
   const k = p[1] >= WET ? 1 : p[2] >= WET ? 2 : -1;
-  if (k < 0) return null;
-  const startsAt = new Date(w.minutely_15.time[k] + "Z").getTime() - (w.utc_offset_seconds || 0) * 1000;
-  const mins = Math.min(30, Math.max(5, Math.round((startsAt - Date.now()) / 300000) * 5));
+  if (k < 0) return { fire: false, why: "no se espera lluvia en la próxima hora" };
+  const mins = Math.min(30, Math.max(5, Math.round((starts[k] - now) / 300000) * 5));
   const mmh = p[k] * 4;
   const kind = mmh < 2 ? "lluvia débil" : mmh < 8 ? "lluvia moderada" : "lluvia fuerte";
   return {
-    title: `Va a llover${sub.place ? ` en ${sub.place}` : ""}`,
-    body: `Empieza a llover en unos ${mins} min (${kind}). Si vas a salir, coge el paraguas.`,
+    fire: true, why: `va a llover en unos ${mins} min`,
+    msg: { title: `Va a llover${sub.place ? ` en ${sub.place}` : ""}`, body: `Empieza a llover en unos ${mins} min (${kind}). Si vas a salir, coge el paraguas.` },
   };
 }
 
-// La noche antes: mañana mínima muy baja o bajada fuerte respecto a hoy.
-async function coldAlert(sub) {
-  const w = await forecast(sub, "daily=temperature_2m_max,temperature_2m_min,apparent_temperature_min&forecast_days=2");
-  const D = w.daily;
+async function rainData(sub, simulate = false) {
+  if (simulate) {
+    const now = Date.now();
+    return { p: [0, 0, 0.6, 0.9], starts: [0, 15, 30, 45].map((m) => now + m * 60000) };
+  }
+  const w = await forecast(sub, "minutely_15=precipitation&forecast_minutely_15=4");
+  const p = (w.minutely_15?.precipitation || []).map((x) => x ?? 0);
+  const times = w.minutely_15?.time || [];
+  const starts = times.map((t) => new Date(t + "Z").getTime() - (w.utc_offset_seconds || 0) * 1000);
+  return { p, starts };
+}
+
+// "Empieza a llover en 30 min": seco ahora y lluvia en el tramo que empieza dentro de 30 min
+// (o ya a 15 min si la previsión cambia). El puente mira cada 15 minutos.
+async function rainAlert(sub, log = [], simulate = false) {
+  const { p, starts } = await rainData(sub, simulate);
+  log.push("lluvia prevista (mm cada 15 min): " + p.map((x) => x.toFixed(1)).join(" · "));
+  const d = rainDecision(sub, p, starts);
+  if (!d.fire) log.push("lluvia: sin aviso, " + d.why);
+  return d.fire ? d.msg : null;
+}
+
+async function coldInfo(sub, simulate = false) {
+  let D;
+  if (simulate) D = { temperature_2m_max: [16, 8], temperature_2m_min: [9, 2], apparent_temperature_min: [7, -1] };
+  else D = (await forecast(sub, "daily=temperature_2m_max,temperature_2m_min,apparent_temperature_min&forecast_days=2")).daily;
   const [maxT, minT] = [D.temperature_2m_max, D.temperature_2m_min].map((a) => a.map(Math.round));
   const feels = Math.round(D.apparent_temperature_min?.[1] ?? minT[1]);
   const dropMin = minT[0] - minT[1], dropMax = maxT[0] - maxT[1];
   const veryCold = minT[1] <= 3 || feels <= 0;
-  if (!veryCold && dropMin < 5 && dropMax < 5) return null;
+  return { maxT, minT, feels, dropMin, dropMax, veryCold, fire: veryCold || dropMin >= 5 || dropMax >= 5 };
+}
 
+// La noche antes: mañana mínima muy baja o bajada fuerte respecto a hoy.
+async function coldAlert(sub, simulate = false) {
+  const c = await coldInfo(sub, simulate);
+  if (!c.fire) return null;
+  const { maxT, minT, feels, dropMin, dropMax, veryCold } = c;
   const parts = [`Mañana ${minT[1]}° a ${maxT[1]}° (hoy ${minT[0]}° a ${maxT[0]}°).`];
   if (dropMax >= 5 || dropMin >= 5) parts.push(`Hará unos ${Math.max(dropMin, dropMax)}° menos que hoy.`);
   if (feels < minT[1] - 1) parts.push(`Sensación de ${feels}° a primera hora.`);
-  const first = await firstPlanTomorrow(sub);
+  const first = simulate ? "" : await firstPlanTomorrow(sub);
   if (first) parts.push(`Tu primer plan: ${first}.`);
   parts.push(minT[1] <= 3 ? "Saca el abrigo gordo, guantes y bufanda." : "Deja preparado algo de abrigo.");
   return { title: veryCold ? "Mañana hace mucho frío" : "Mañana bajan las temperaturas", body: parts.join(" ") };
+}
+
+// Lo que ve el puente ahora mismo para este móvil, sin enviar nada.
+async function checkReport(sub) {
+  const local = localNow(sub.tz);
+  const out = { place: sub.place || null, lat: sub.lat, lon: sub.lon, tz: sub.tz, time: `${String(Math.floor(local.minutes / 60)).padStart(2, "0")}:${String(local.minutes % 60).padStart(2, "0")}` };
+  try {
+    const { p, starts } = await rainData(sub);
+    const d = rainDecision(sub, p, starts);
+    const since = sub.lastRain ? Math.round((Date.now() - sub.lastRain) / 60000) : null;
+    let note = d.why;
+    if (d.fire && (local.hour < 7 || local.hour >= 23)) note += ", pero ahora es de noche (solo aviso de 7:00 a 23:00)";
+    else if (d.fire && since !== null && since < 180) note += `, pero ya avisó hace ${since} min (máximo uno cada 3 h)`;
+    out.rain = { slots: p, decision: note };
+  } catch (e) {
+    out.rain = { error: String(e?.message || e) };
+  }
+  try {
+    const c = await coldInfo(sub);
+    out.cold = {
+      today: [c.minT[0], c.maxT[0]], tomorrow: [c.minT[1], c.maxT[1]], feels: c.feels,
+      decision: c.fire ? "mañana hace frío: avisará esta noche" : "mañana no baja lo bastante: sin aviso (avisa si la mínima es de 3° o menos, la sensación de 0° o menos, o hay 5° menos que hoy)",
+    };
+  } catch (e) {
+    out.cold = { error: String(e?.message || e) };
+  }
+  return out;
 }
 
 async function firstPlanTomorrow(sub) {

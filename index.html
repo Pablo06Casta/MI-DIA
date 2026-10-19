@@ -292,7 +292,7 @@
     font: 14px/1.4 ui-monospace, Menlo, monospace; resize: vertical;
   }
   .sheet .note { font-size: 13px; color: var(--muted); margin-top: 8px; }
-  .sheet .row { display: flex; gap: 10px; margin-top: 4px; }
+  .sheet .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
   .sheet .status { font-size: 14px; margin-top: 10px; min-height: 20px; color: #9ff0d0; }
   .sheet .status.err { color: #ffb08a; }
   .push-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.06); font-size: 15px; }
@@ -560,6 +560,12 @@
     <button class="btn primary" id="pushToggle">Activar avisos</button>
     <button class="btn" id="pushTest" hidden>Enviar prueba</button>
   </div>
+  <div class="row" id="pushTools" hidden>
+    <button class="btn" id="pushSimRain">Simular lluvia</button>
+    <button class="btn" id="pushSimCold">Simular frío</button>
+    <button class="btn" id="pushCheck">Qué ve el puente</button>
+  </div>
+  <p class="note" id="pushToolsNote" hidden>«Simular» envía el aviso real con datos inventados, para comprobar que llega. «Qué ve el puente» enseña la lluvia y la temperatura que está mirando ahora para ti.</p>
 
   <div class="row" style="margin-top:22px">
     <button class="btn" id="closeSettings">Cerrar</button>
@@ -1506,6 +1512,8 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     $("pushToggle").textContent = p.on ? "Desactivar avisos" : "Activar avisos";
     $("pushToggle").classList.toggle("primary", !p.on);
     $("pushTest").hidden = !p.on;
+    $("pushTools").hidden = !p.on;
+    $("pushToolsNote").hidden = !p.on;
     if (!pushSupported()) {
       pushStatus(navigator.standalone === false || /iPhone|iPad/.test(navigator.userAgent)
         ? "Para recibir avisos, abre Mi Día desde el icono de la pantalla de inicio (no desde Safari)."
@@ -1524,11 +1532,12 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
       if (!sub) { box.hidden = true; return; }
       const st = await pushPost("status", { endpoint: sub.endpoint });
       const ago = st.cronLast ? Math.round((Date.now() - st.cronLast) / 60000) : null;
-      let html;
-      if (!st.subscribed) html = `<span class="warn">Este móvil no está registrado en el puente.</span> Desactiva y vuelve a activar los avisos.`;
-      else if (ago === null) html = `<span class="warn">El puente todavía no ha comprobado nada.</span> Falta activar el Cron en Cloudflare: Settings → Triggers → Cron Triggers → <b>*/15 * * * *</b>.`;
-      else if (ago > 35) html = `<span class="warn">Última comprobación hace ${ago} min.</span> El Cron de Cloudflare parece parado.`;
-      else html = `<b>✓ Funcionando.</b> Última comprobación hace ${ago <= 1 ? "1 min" : ago + " min"}.`;
+      let html = "";
+      if (st.subscribed && st.place) html += `<div>Avisos para <b>${esc(st.place)}</b> (${(+st.lat).toFixed(2)}, ${(+st.lon).toFixed(2)})</div>`;
+      if (!st.subscribed) html += `<span class="warn">Este móvil no está registrado en el puente.</span> Desactiva y vuelve a activar los avisos.`;
+      else if (ago === null) html += `<span class="warn">El puente todavía no ha comprobado nada.</span> Falta activar el Cron en Cloudflare: Settings → Triggers → Cron Triggers → <b>*/15 * * * *</b>.`;
+      else if (ago > 35) html += `<span class="warn">Última comprobación hace ${ago} min.</span> El Cron de Cloudflare parece parado.`;
+      else html += `<b>✓ Funcionando.</b> Última comprobación hace ${ago <= 1 ? "1 min" : ago + " min"}.`;
       if (st.log?.length) html += `<ul>${st.log.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`;
       if (st.lastRain) html += `<div style="margin-top:6px">Último aviso de lluvia: ${new Date(st.lastRain).toLocaleString("es-ES", { weekday: "short", hour: "2-digit", minute: "2-digit" })}</div>`;
       box.innerHTML = html;
@@ -1564,6 +1573,36 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     }
   };
   $("pushHour").onchange = () => { const p = readPush(); savePush({ ...p, coldHour: $("pushHour").value || "21:00" }); syncPush(); paintPush(); };
+  const simulate = async (kind) => {
+    try {
+      pushStatus("Simulando…");
+      await syncPush();
+      const sub = await currentSub();
+      const r = await pushPost("simulate", { endpoint: sub.endpoint, kind });
+      pushStatus(r.ok ? "Enviado. Te llegará en unos segundos con «Simulación:» al principio." : "No se ha podido enviar.", !r.ok);
+      $("pushDiag").innerHTML = `<b>Lo que ha hecho el puente</b><ul>${(r.log || []).map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`;
+      $("pushDiag").hidden = false;
+    } catch (e) { pushStatus("No se ha podido simular: " + e.message, true); }
+  };
+  $("pushSimRain").onclick = () => simulate("rain");
+  $("pushSimCold").onclick = () => simulate("cold");
+  $("pushCheck").onclick = async () => {
+    try {
+      pushStatus("Preguntando al puente…");
+      await syncPush();
+      const sub = await currentSub();
+      const r = await pushPost("check", { endpoint: sub.endpoint });
+      const rain = r.rain.error ? `<span class="warn">Error: ${esc(r.rain.error)}</span>`
+        : `${r.rain.slots.map((x) => x.toFixed(1)).join(" · ")} mm cada 15 min<br>→ ${esc(r.rain.decision)}`;
+      const cold = r.cold.error ? `<span class="warn">Error: ${esc(r.cold.error)}</span>`
+        : `Hoy ${r.cold.today[0]}°–${r.cold.today[1]}° · mañana ${r.cold.tomorrow[0]}°–${r.cold.tomorrow[1]}° (sensación ${r.cold.feels}°)<br>→ ${esc(r.cold.decision)}`;
+      $("pushDiag").innerHTML = `<div>Ubicación: <b>${esc(r.place || "sin nombre")}</b> (${(+r.lat).toFixed(2)}, ${(+r.lon).toFixed(2)}) · hora ${esc(r.time)}</div>
+        <div style="margin-top:8px"><b>Lluvia en la próxima hora</b><br>${rain}</div>
+        <div style="margin-top:8px"><b>Frío mañana</b><br>${cold}</div>`;
+      $("pushDiag").hidden = false;
+      pushStatus("");
+    } catch (e) { pushStatus("No he podido preguntar al puente: " + e.message, true); }
+  };
   $("pushTest").onclick = async () => {
     try {
       pushStatus("Enviando…");

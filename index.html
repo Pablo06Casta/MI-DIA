@@ -53,7 +53,7 @@
   .topbar {
     position: absolute; top: 0; left: 0; right: 0; z-index: 3;
     display: flex; justify-content: space-between; align-items: center;
-    padding: calc(env(safe-area-inset-top) + 14px) 18px 0;
+    padding: calc(env(safe-area-inset-top) + 58px) 18px 0;
   }
   .pill {
     display: inline-flex; align-items: center; gap: 14px;
@@ -79,13 +79,13 @@
   /* ---------- hero ---------- */
   .hero {
     position: relative; overflow: hidden;
-    height: calc(46vh + env(safe-area-inset-top)); min-height: 340px; max-height: 500px;
+    height: calc(46vh + env(safe-area-inset-top)); min-height: 390px; max-height: 540px;
     background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
   }
   .scene { position: absolute; inset: 0; width: 100%; height: 100%; }
   .scene path, .scene rect, .scene circle { transition: fill .8s ease, opacity .8s ease; }
   .now {
-    position: absolute; z-index: 2; left: 26px; top: calc(env(safe-area-inset-top) + 86px);
+    position: absolute; z-index: 2; left: 26px; top: calc(env(safe-area-inset-top) + 134px);
     text-shadow: 0 2px 14px rgba(0,0,0,.12);
   }
   .temp { font-size: 76px; font-weight: 300; letter-spacing: -3px; line-height: 1; }
@@ -269,6 +269,13 @@
   .radar-legend { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--muted); }
   .radar-legend i { flex: 1; height: 6px; border-radius: 6px; background: linear-gradient(90deg, rgba(120,200,255,.6), #3c96ff, #2858e6, #ffd246, #ff6e3c); }
 
+  /* view switcher: small rounded pills at the very top */
+  .viewbar { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.32);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .viewbar button { border: 0; background: none; color: #fff; font: inherit; font-size: 13px; font-weight: 600; padding: 6px 15px; border-radius: 999px; cursor: pointer; }
+  .viewbar button.on { background: #fff; color: #17324d; }
+  .hero .viewbar { position: absolute; top: calc(env(safe-area-inset-top) + 12px); left: 50%; transform: translateX(-50%); z-index: 4; }
+
   /* mail shortcut */
   .mail { display: flex; align-items: center; gap: 14px; padding: 14px 18px; color: inherit; text-decoration: none; }
   .mail:active { opacity: .7; }
@@ -322,6 +329,77 @@
   .push-diag .warn { color: #ffb08a; }
   .push-diag ul { margin: 6px 0 0 16px; color: var(--muted); }
   .push-row input { font: inherit; font-size: 17px; font-weight: 600; color: #fff; background: none; border: 0; color-scheme: dark; }
+
+
+  /* ===== Tareas (estilo Things) ===== */
+  html.in-tasks body { background: #fff !important; }
+  .tasks-app { max-width: 520px; margin: 0 auto; min-height: 100vh; background: #fff; color: #1c1c1e; position: relative; }
+  .t-band { height: calc(env(safe-area-inset-top) + 66px); background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom)); display: flex; align-items: flex-start; justify-content: center; padding-top: calc(env(safe-area-inset-top) + 12px); }
+  .t-sheet { position: relative; margin-top: -22px; background: #fff; border-radius: 26px 26px 0 0; min-height: calc(100vh - env(safe-area-inset-top) - 44px); padding: 20px 20px 130px; }
+  .t-search { display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border-radius: 14px; background: #eeeef0; color: #8e8e93; }
+  .t-search svg { width: 18px; height: 18px; flex: none; }
+  .t-search input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: 16px; color: #1c1c1e; outline: none; }
+  .t-group { margin-top: 18px; }
+  .t-item { display: flex; align-items: center; gap: 14px; padding: 11px 2px; font-size: 19px; font-weight: 600; cursor: pointer; border-radius: 10px; }
+  .t-item:active, .t-proj:active, .t-area:active { background: #f2f2f7; }
+  .t-ico { width: 26px; height: 26px; flex: none; }
+  .t-count { margin-left: auto; color: #8e8e93; font-weight: 500; font-size: 17px; }
+  .t-badge { margin-left: auto; background: #e8456b; color: #fff; border-radius: 999px; font-size: 14px; font-weight: 700; padding: 1px 9px; min-width: 24px; text-align: center; }
+  .t-badge + .t-count { margin-left: 12px; }
+  .t-sep { height: 1px; background: #e5e5ea; margin: 12px 0; }
+  .t-area { display: flex; align-items: center; gap: 12px; font-size: 19px; font-weight: 600; padding: 11px 2px; cursor: pointer; border-radius: 10px; }
+  .t-area .chev { margin-left: auto; width: 20px; height: 20px; color: #b0b0b6; transition: transform .2s; }
+  .t-area.closed .chev { transform: rotate(-90deg); }
+  .t-proj { display: flex; align-items: center; gap: 14px; padding: 11px 2px 11px 2px; font-size: 18px; cursor: pointer; border-radius: 10px; }
+  .t-proj .t-ico { width: 24px; height: 24px; }
+  .t-link { display: block; width: 100%; text-align: left; border: 0; background: none; font: inherit; font-size: 16px; color: #3b82f6; padding: 10px 2px; cursor: pointer; }
+  .t-foot { margin-top: 26px; font-size: 13px; line-height: 1.5; color: #8e8e93; }
+  .t-foot button { border: 0; background: none; font: inherit; color: #3b82f6; padding: 0 10px 0 0; cursor: pointer; }
+  .t-warn { background: #fff1e6; color: #a04a00; border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
+  .t-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .t-circle { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #d9d9de; background: #fff; display: grid; place-items: center; color: #8e8e93; cursor: pointer; }
+  .t-circle svg { width: 20px; height: 20px; }
+  .t-title { display: flex; align-items: center; gap: 12px; font-size: 34px; font-weight: 700; letter-spacing: -.5px; margin: 8px 0 16px; }
+  .t-title .t-ico { width: 34px; height: 34px; }
+  .t-events { background: #f2f2f7; border-radius: 14px; padding: 12px 14px; font-size: 16px; line-height: 1.5; margin-bottom: 14px; }
+  .t-events div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-events b { font-weight: 500; margin-right: 6px; }
+  .t-events .bar { display: inline-block; width: 3px; height: 14px; border-radius: 2px; background: #3b82f6; margin-right: 6px; vertical-align: -2px; }
+  .t-sec { display: flex; align-items: center; gap: 10px; margin: 24px 0 4px; padding-bottom: 8px; border-bottom: 1px solid #e5e5ea; font-size: 20px; font-weight: 700; }
+  .t-sec svg { width: 22px; height: 22px; }
+  .t-row { display: flex; align-items: flex-start; gap: 14px; padding: 10px 0; }
+  .t-check { flex: none; width: 24px; height: 24px; margin-top: 2px; border: 2px solid #c7c7cc; border-radius: 7px; background: #fff; cursor: pointer; padding: 0; position: relative; transition: background .2s, border-color .2s; }
+  .t-row.ticked .t-check, .t-row.done .t-check { background: #3b82f6; border-color: #3b82f6; }
+  .t-row.ticked .t-check::after, .t-row.done .t-check::after { content: ""; position: absolute; left: 6px; top: 2px; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
+  .t-body { flex: 1; min-width: 0; cursor: pointer; }
+  .t-name { font-size: 19px; line-height: 1.25; overflow-wrap: anywhere; }
+  .t-row.ticked .t-name, .t-row.done .t-name { color: #8e8e93; text-decoration: line-through; }
+  .t-sub { font-size: 15px; color: #8e8e93; margin-top: 1px; }
+  .t-flag { flex: none; display: flex; align-items: center; gap: 4px; margin-top: 2px; font-size: 16px; font-weight: 600; color: #e8456b; }
+  .t-flag svg { width: 15px; height: 15px; }
+  .t-flag.later { color: #8e8e93; font-weight: 500; }
+  .t-note { flex: none; width: 17px; height: 17px; margin-top: 4px; color: #b0b0b6; }
+  .t-empty { color: #8e8e93; font-size: 17px; line-height: 1.5; padding: 24px 4px; text-align: center; }
+  .t-fab-wrap { position: sticky; bottom: 0; height: 0; z-index: 5; }
+  .t-fab { position: absolute; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 22px); width: 58px; height: 58px; border-radius: 50%; border: 0; background: #3b82f6; color: #fff; display: grid; place-items: center; cursor: pointer; box-shadow: 0 8px 22px rgba(59,130,246,.45); }
+  .t-fab svg { width: 28px; height: 28px; }
+  .t-modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 40; }
+  .t-modal-bg.open { opacity: 1; pointer-events: auto; }
+  .t-modal { position: fixed; left: 0; right: 0; bottom: 0; max-width: 520px; margin: 0 auto; background: #fff; color: #1c1c1e; border-radius: 24px 24px 0 0; padding: 18px 20px calc(env(safe-area-inset-bottom) + 20px);
+    transform: translateY(105%); transition: transform .28s cubic-bezier(.2,.8,.2,1); z-index: 41; max-height: 92vh; overflow-y: auto; box-shadow: 0 -12px 40px rgba(0,0,0,.18); }
+  .t-modal.open { transform: none; }
+  .t-field { margin-top: 12px; }
+  .t-field label { display: block; font-size: 13px; font-weight: 600; color: #8e8e93; margin: 0 2px 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .t-input { width: 100%; border: 0; background: #f2f2f7; border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 17px; color: #1c1c1e; outline: none; -webkit-appearance: none; appearance: none; }
+  .t-input.big { font-size: 21px; font-weight: 600; background: none; padding: 6px 2px; }
+  textarea.t-input { min-height: 74px; resize: vertical; }
+  .t-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .t-chip { border: 1.5px solid #e0e0e5; background: #fff; color: #3a3a3c; border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 15px; cursor: pointer; }
+  .t-chip.on { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .t-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .t-btn { flex: 1; border: 0; border-radius: 14px; padding: 13px; font: inherit; font-size: 17px; font-weight: 600; cursor: pointer; background: #f2f2f7; color: #3a3a3c; }
+  .t-btn.primary { background: #3b82f6; color: #fff; }
+  .t-btn.danger { flex: 0 0 auto; background: none; color: #e8456b; }
 
   [hidden] { display: none !important; }
 
@@ -396,6 +474,10 @@
   </header>
 
   <section class="hero">
+    <div class="viewbar" role="tablist" aria-label="Sección">
+      <button data-view="weather" class="on" role="tab" aria-selected="true">Tiempo</button>
+      <button data-view="tasks" role="tab" aria-selected="false">Tareas</button>
+    </div>
     <svg class="scene" id="scene" viewBox="0 0 400 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
       <!-- stars -->
       <g id="stars" opacity="0">
@@ -569,6 +651,19 @@
 
     <p class="foot" id="foot">Datos: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a></p>
   </main>
+</div>
+
+<div class="tasks-app" id="tasksApp" hidden>
+  <div class="t-band">
+    <div class="viewbar" role="tablist" aria-label="Sección">
+      <button data-view="weather" role="tab" aria-selected="false">Tiempo</button>
+      <button data-view="tasks" class="on" role="tab" aria-selected="true">Tareas</button>
+    </div>
+  </div>
+  <main class="t-sheet" id="tMain"></main>
+  <div class="t-fab-wrap"><button class="t-fab" id="tFab" aria-label="Nueva tarea"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
+  <div class="t-modal-bg" id="tModalBg"></div>
+  <div class="t-modal" id="tModal" role="dialog" aria-modal="true"></div>
 </div>
 
 <div class="sheet-bg" id="sheetBg"></div>
@@ -1486,6 +1581,7 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
       return;
     }
     renderAgenda(); paintDayText();
+    tRefreshIfOpen();
   }
 
   /* ---------- settings sheet ---------- */
@@ -1885,6 +1981,327 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     else if (Date.now() - radar.loaded > 10 * 60000) loadRadarFrames().catch(() => {});
     else if (radar.playing) radarPlay(true);
   }, { rootMargin: "200px" }).observe($("radarCard"));
+
+  /* ---------- Tareas (estilo Things): se guardan en este móvil ---------- */
+  const T_KEY = "midia:tasks:v1";
+  const tdb = { tasks: [], projects: [], collapsed: {} };
+  const tv = { view: "home", q: "" };
+  let tSaveFailed = false;
+
+  (function tLoad() {
+    try {
+      const d = JSON.parse(localStorage.getItem(T_KEY));
+      if (d && Array.isArray(d.tasks)) {
+        tdb.tasks = d.tasks;
+        tdb.projects = Array.isArray(d.projects) ? d.projects : [];
+        tdb.collapsed = d.collapsed || {};
+      }
+    } catch {}
+  })();
+  function tSave() {
+    try { localStorage.setItem(T_KEY, JSON.stringify(tdb)); tSaveFailed = false; } catch { tSaveFailed = true; }
+  }
+
+  const tid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+  const niceDate = (str) => {
+    if (str === addDays(0)) return "Hoy";
+    if (str === addDays(1)) return "Mañana";
+    if (str === addDays(-1)) return "Ayer";
+    return new Date(str + "T12:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+  };
+
+  // icons, drawn like the reference
+  const TI = {
+    inbox: `<svg class="t-ico" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#3b9cf4"/><path d="M5.5 6.5h13v7.2h-3.4c-.5 0-.9.3-1.1.8a2.2 2.2 0 0 1-4 0c-.2-.5-.6-.8-1.1-.8H5.5z" fill="#fff"/><path d="M5.5 15.4h13V17a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 17z" fill="#fff"/></svg>`,
+    today: `<svg class="t-ico" viewBox="0 0 24 24"><path d="m12 2.2 2.9 6 6.6.9-4.8 4.6 1.2 6.5-5.9-3.1-5.9 3.1 1.2-6.5L2.5 9.1l6.6-.9z" fill="#ffc933" stroke="#ffc933" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
+    scheduled: `<svg class="t-ico" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="19" rx="5" fill="#e8456b"/><rect x="4.5" y="8.5" width="15" height="11" rx="2.5" fill="#fff"/><g fill="#f4a3b5"><rect x="6.5" y="10.5" width="2.4" height="2"/><rect x="10.8" y="10.5" width="2.4" height="2"/><rect x="15.1" y="10.5" width="2.4" height="2"/><rect x="6.5" y="14.5" width="2.4" height="2"/><rect x="10.8" y="14.5" width="2.4" height="2"/><rect x="15.1" y="14.5" width="2.4" height="2"/></g><rect x="7" y="1.5" width="2" height="4" rx="1" fill="#e8456b" stroke="#fff"/><rect x="15" y="1.5" width="2" height="4" rx="1" fill="#e8456b" stroke="#fff"/></svg>`,
+    anytime: `<svg class="t-ico" viewBox="0 0 24 24"><path d="m12 3 9.5 4.6L12 12.2 2.5 7.6z" fill="#3a9a8e"/><path d="m2.5 11.2 9.5 4.6 9.5-4.6" fill="none" stroke="#3a9a8e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><path d="m2.5 15.4 9.5 4.6 9.5-4.6" fill="none" stroke="#3a9a8e" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity=".6"/></svg>`,
+    someday: `<svg class="t-ico" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="5" rx="1.6" fill="#cdb673"/><rect x="3.5" y="10" width="17" height="10.5" rx="2" fill="#cdb673"/><rect x="9" y="12.6" width="6" height="2.2" rx="1.1" fill="#fff"/></svg>`,
+    logbook: `<svg class="t-ico" viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="3.5" fill="#4cc15f"/><rect x="6.5" y="6.5" width="11" height="11" rx="2.5" fill="#fff"/><path d="m9 12 2.2 2.2L15 10" fill="none" stroke="#4cc15f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    area: `<svg class="t-ico" viewBox="0 0 24 24" fill="none" stroke="#8e8e93" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg>`,
+    moon: `<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="#7b8fd1"/></svg>`,
+    flag: `<svg viewBox="0 0 24 24"><path d="M5 3v18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6 4h13l-3 4.5 3 4.5H6z" fill="currentColor"/></svg>`,
+    note: `<svg class="t-note" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/></svg>`,
+    back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>`,
+    more: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>`,
+    chev: `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`,
+    search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>`,
+  };
+  const pie = (ratio, size = 24) => {
+    const a = ratio * 2 * Math.PI, x = 12 + 8 * Math.sin(a), y = 12 - 8 * Math.cos(a);
+    const sector = ratio >= 1 ? `<circle cx="12" cy="12" r="8" fill="#8e8e93"/>` : ratio <= 0 ? "" : `<path d="M12 12V4A8 8 0 0 ${ratio > 0.5 ? 1 : 0} 1 ${x.toFixed(2)} ${y.toFixed(2)}Z" fill="#8e8e93"/>`;
+    return `<svg class="t-ico" viewBox="0 0 24 24" width="${size}" height="${size}"><circle cx="12" cy="12" r="9" fill="none" stroke="#8e8e93" stroke-width="1.8"/>${sector}</svg>`;
+  };
+
+  // which list does a task belong to
+  const tOpen = () => tdb.tasks.filter((t) => t.status === "open");
+  const isToday = (t) => t.status === "open" && (t.when === "today" || t.when === "evening" || (t.when === "date" && t.date <= addDays(0)));
+  const isScheduled = (t) => t.status === "open" && t.when === "date" && t.date > addDays(0);
+  const isAnytime = (t) => t.status === "open" && (t.when === "anytime" || isToday(t));
+  const projName = (id) => tdb.projects.find((x) => x.id === id)?.name || "";
+  const projRatio = (id) => {
+    const all = tdb.tasks.filter((t) => t.project === id);
+    return all.length ? all.filter((t) => t.status === "done").length / all.length : 0;
+  };
+
+  const VIEWS = {
+    inbox: { title: "Entrada", icon: "inbox", list: () => tOpen().filter((t) => t.when === "inbox"), empty: "La entrada está vacía. Apunta aquí lo primero que se te ocurra con el botón +." },
+    today: { title: "Hoy", icon: "today", list: () => tdb.tasks.filter(isToday), empty: "Nada por hacer hoy. ¡Buen momento para descansar!" },
+    scheduled: { title: "Programadas", icon: "scheduled", list: () => tdb.tasks.filter(isScheduled), empty: "No tienes tareas programadas para otros días." },
+    anytime: { title: "En cualquier momento", icon: "anytime", list: () => tdb.tasks.filter(isAnytime), empty: "Aquí aparecen las tareas que puedes hacer cuando quieras." },
+    someday: { title: "Algún día", icon: "someday", list: () => tOpen().filter((t) => t.when === "someday"), empty: "Guarda aquí las ideas que quieres recordar pero no son para ahora." },
+    logbook: { title: "Registro", icon: "logbook", list: () => tdb.tasks.filter((t) => t.status === "done").sort((a, b) => b.done - a.done), empty: "Aquí verás las tareas que vayas completando." },
+  };
+
+  function tRow(t, showProj = true) {
+    const dl = t.deadline && t.status === "open" ? t.deadline : null;
+    const flag = dl ? `<span class="t-flag ${dl > addDays(0) ? "later" : ""}">${TI.flag}${dl === addDays(0) ? "hoy" : dl < addDays(0) ? "vencida" : esc(niceDate(dl))}</span>` : "";
+    const sub = showProj && t.project ? `<div class="t-sub">${esc(projName(t.project))}</div>` : "";
+    return `<div class="t-row ${t.status === "done" ? "done" : ""}" data-row="${t.id}">
+      <button class="t-check" data-check="${t.id}" aria-label="${t.status === "done" ? "Marcar como pendiente" : "Completar"}"></button>
+      <div class="t-body" data-edit="${t.id}"><div class="t-name">${esc(t.title)}</div>${sub}</div>
+      ${t.notes ? TI.note : ""}${flag}
+    </div>`;
+  }
+
+  // ---- screens ----
+  function tHomeBody() {
+    const q = tv.q.trim().toLowerCase();
+    if (q) {
+      const hits = tdb.tasks.filter((t) => (t.title + " " + (t.notes || "")).toLowerCase().includes(q));
+      return hits.length ? `<div class="t-group">${hits.map((t) => tRow(t)).join("")}</div>` : `<div class="t-empty">No hay tareas con «${esc(tv.q)}».</div>`;
+    }
+    const nInbox = VIEWS.inbox.list().length, nToday = VIEWS.today.list().length;
+    const due = tOpen().filter((t) => t.deadline && t.deadline <= addDays(0)).length;
+    const item = (k, extra = "") => `<div class="t-item" data-go="${k}">${TI[VIEWS[k].icon]}<span>${VIEWS[k].title}</span>${extra}</div>`;
+    let html = `<div class="t-group">${item("inbox", nInbox ? `<span class="t-count">${nInbox}</span>` : "")}</div>
+      <div class="t-group">${item("today", (due ? `<span class="t-badge">${due}</span>` : "") + (nToday ? `<span class="t-count">${nToday}</span>` : ""))}
+        ${item("scheduled")}${item("anytime")}${item("someday")}</div>
+      <div class="t-group">${item("logbook")}</div>`;
+    const areas = [...new Set(tdb.projects.map((x) => x.area || ""))];
+    const projRow = (x) => `<div class="t-proj" data-go="project:${x.id}">${pie(projRatio(x.id))}<span>${esc(x.name)}</span></div>`;
+    const withArea = areas.filter(Boolean).map((a) => {
+      const closed = tdb.collapsed[a];
+      return `<div class="t-sep"></div><div class="t-area ${closed ? "closed" : ""}" data-area="${esc(a)}">${TI.area}<span>${esc(a)}</span>${TI.chev}</div>` +
+        (closed ? "" : tdb.projects.filter((x) => x.area === a).map(projRow).join(""));
+    }).join("");
+    const loose = tdb.projects.filter((x) => !x.area).map(projRow).join("");
+    html += (withArea || loose) ? `${withArea}${loose ? `<div class="t-sep"></div>${loose}` : ""}` : "";
+    html += `<div class="t-sep"></div><button class="t-link" data-newproj>+ Nuevo proyecto</button>
+      <p class="t-foot">Tus tareas se guardan solo en este móvil.<br><button data-backup>Copia de seguridad</button><button data-restore>Restaurar</button></p>`;
+    return html;
+  }
+
+  function tEventsBox() {
+    if (typeof calEvents === "undefined" || !calEvents) return "";
+    const { today } = splitDays();
+    if (!today.length) return "";
+    const colors = ["#3b82f6", "#3b82f6", "#34c759", "#34c759", "#ff9f0a", "#af52de"];
+    return `<div class="t-events">${today.map((e, i) => e.allDay
+      ? `<div><span class="bar"></span>${esc(e.title || "Sin título")}</div>`
+      : `<div><b style="color:${colors[i % colors.length]}">${clock(e.start).replace(/^0/, "")}</b>${esc(e.title || "Sin título")}</div>`).join("")}</div>`;
+  }
+
+  function tListBody(key) {
+    const V = VIEWS[key];
+    const list = V.list();
+    if (!list.length && key !== "today") return `<div class="t-empty">${V.empty}</div>`;
+    if (key === "today") {
+      const day = list.filter((t) => t.when !== "evening"), night = list.filter((t) => t.when === "evening");
+      const ev = tEventsBox();
+      if (!list.length && !ev) return `<div class="t-empty">${V.empty}</div>`;
+      return ev + day.map((t) => tRow(t)).join("") +
+        (night.length ? `<div class="t-sec">${TI.moon}Esta noche</div>${night.map((t) => tRow(t)).join("")}` : "");
+    }
+    if (key === "scheduled" || key === "logbook") {
+      const groups = {};
+      list.forEach((t) => { const k = key === "logbook" ? ymd(new Date(t.done || t.created)) : t.date; (groups[k] = groups[k] || []).push(t); });
+      const keys = Object.keys(groups).sort(key === "logbook" ? (a, b) => b.localeCompare(a) : undefined);
+      return keys.map((k) => `<div class="t-sec">${esc(niceDate(k))}</div>${groups[k].map((t) => tRow(t)).join("")}`).join("");
+    }
+    return list.map((t) => tRow(t)).join("");
+  }
+
+  function tProjectBody(id) {
+    const open = tdb.tasks.filter((t) => t.project === id && t.status === "open");
+    const done = tdb.tasks.filter((t) => t.project === id && t.status === "done");
+    if (!open.length && !done.length) return `<div class="t-empty">Este proyecto está vacío. Añade tareas con el botón +.</div>`;
+    return open.map((t) => tRow(t, false)).join("") +
+      (done.length ? `<div class="t-sec">Completadas</div>${done.map((t) => tRow(t, false)).join("")}` : "");
+  }
+
+  function tRender() {
+    const el = $("tMain");
+    const warn = tSaveFailed ? `<div class="t-warn">No puedo guardar en este navegador (¿modo privado?). Las tareas se perderán al cerrar.</div>` : "";
+    if (tv.view === "home") {
+      el.innerHTML = `${warn}<label class="t-search">${TI.search}<input id="tSearch" type="search" placeholder="Búsqueda rápida" value="${esc(tv.q)}" autocomplete="off"></label><div id="tHomeBody">${tHomeBody()}</div>`;
+      return;
+    }
+    const nav = (more) => `<div class="t-nav"><button class="t-circle" data-back aria-label="Volver">${TI.back}</button>${more ? `<button class="t-circle" data-more aria-label="Más">${TI.more}</button>` : "<span></span>"}</div>`;
+    if (tv.view.startsWith("project:")) {
+      const id = tv.view.slice(8), pr = tdb.projects.find((x) => x.id === id);
+      if (!pr) { tv.view = "home"; return tRender(); }
+      el.innerHTML = `${warn}${nav(true)}<h1 class="t-title">${pie(projRatio(id), 34)}<span>${esc(pr.name)}</span></h1>${tProjectBody(id)}`;
+      return;
+    }
+    const V = VIEWS[tv.view];
+    el.innerHTML = `${warn}${nav(tv.view === "logbook" && VIEWS.logbook.list().length)}<h1 class="t-title">${TI[V.icon]}<span>${V.title}</span></h1>${tListBody(tv.view)}`;
+  }
+  function tRefreshIfOpen() { if (!$("tasksApp").hidden && !$("tModal").classList.contains("open")) tRender(); }
+  function tGo(view) { tv.view = view; tv.q = ""; tRender(); window.scrollTo(0, 0); }
+
+  // ---- actions ----
+  function tCheck(id, btn) {
+    const t = tdb.tasks.find((x) => x.id === id);
+    if (!t) return;
+    const row = btn.closest(".t-row");
+    const finish = () => {
+      if (t.status === "done") { t.status = "open"; t.done = null; } else { t.status = "done"; t.done = Date.now(); }
+      tSave();
+      if (tv.view === "home") $("tHomeBody").innerHTML = tHomeBody(); else tRender();
+    };
+    if (t.status === "open") { row.classList.add("ticked"); setTimeout(finish, 450); } else finish();
+  }
+
+  function tModalOpen(html) { $("tModal").innerHTML = html; $("tModal").classList.add("open"); $("tModalBg").classList.add("open"); }
+  function tModalClose() { $("tModal").classList.remove("open"); $("tModalBg").classList.remove("open"); tRefreshIfOpen(); }
+  $("tModalBg").addEventListener("click", tModalClose);
+
+  function tNew() {
+    const d = { when: "inbox" };
+    if (tv.view === "today") d.when = "today";
+    else if (tv.view === "anytime") d.when = "anytime";
+    else if (tv.view === "someday") d.when = "someday";
+    else if (tv.view === "scheduled") { d.when = "date"; d.date = addDays(1); }
+    else if (tv.view.startsWith("project:")) { d.project = tv.view.slice(8); d.when = "anytime"; }
+    tEditor(null, d);
+  }
+
+  function tEditor(id, defaults = {}) {
+    const t = id ? tdb.tasks.find((x) => x.id === id) : null;
+    const cur = t ? { ...t } : { title: "", notes: "", when: defaults.when || "inbox", date: defaults.date || null, deadline: null, project: defaults.project || null };
+    let when = cur.when;
+    const whens = [["inbox", "Entrada"], ["today", "Hoy"], ["evening", "Esta noche"], ["anytime", "Cualquier momento"], ["someday", "Algún día"], ["date", "Fecha"]];
+    const projects = tdb.projects.map((x) => `<option value="${x.id}" ${x.id === cur.project ? "selected" : ""}>${esc((x.area ? x.area + " · " : "") + x.name)}</option>`).join("");
+    tModalOpen(`
+      <input class="t-input big" id="tmTitle" placeholder="Nueva tarea" value="${esc(cur.title)}" autocomplete="off">
+      <div class="t-field"><textarea class="t-input" id="tmNotes" placeholder="Notas">${esc(cur.notes || "")}</textarea></div>
+      <div class="t-field"><label>Cuándo</label><div class="t-chips" id="tmWhen">${whens.map(([k, n]) => `<button type="button" class="t-chip ${k === when ? "on" : ""}" data-when="${k}">${n}</button>`).join("")}</div>
+        <input class="t-input" id="tmDate" type="date" style="margin-top:10px" value="${esc(cur.date || addDays(1))}" ${when === "date" ? "" : "hidden"}></div>
+      <div class="t-field"><label>Proyecto</label><select class="t-input" id="tmProj"><option value="">Sin proyecto</option>${projects}</select></div>
+      <div class="t-field"><label>Fecha límite</label><input class="t-input" id="tmDead" type="date" value="${esc(cur.deadline || "")}"></div>
+      <div class="t-actions">${t ? `<button class="t-btn danger" id="tmDel">Eliminar</button>` : ""}<button class="t-btn" id="tmCancel">Cancelar</button><button class="t-btn primary" id="tmSave">Guardar</button></div>`);
+    $("tmWhen").onclick = (e) => {
+      const b = e.target.closest("[data-when]");
+      if (!b) return;
+      when = b.dataset.when;
+      [...$("tmWhen").children].forEach((c) => c.classList.toggle("on", c === b));
+      $("tmDate").hidden = when !== "date";
+    };
+    const save = () => {
+      const title = $("tmTitle").value.trim();
+      if (!title) { $("tmTitle").focus(); return; }
+      const data = { title, notes: $("tmNotes").value.trim(), when, date: when === "date" ? ($("tmDate").value || addDays(1)) : null,
+        deadline: $("tmDead").value || null, project: $("tmProj").value || null };
+      if (data.project && data.when === "inbox") data.when = "anytime"; // a task in a project leaves the inbox
+      if (t) Object.assign(t, data); else tdb.tasks.push({ id: tid(), status: "open", created: Date.now(), done: null, ...data });
+      tSave(); tModalClose();
+    };
+    $("tmSave").onclick = save;
+    $("tmCancel").onclick = tModalClose;
+    if (t) $("tmDel").onclick = () => { if (confirm("¿Eliminar esta tarea?")) { tdb.tasks = tdb.tasks.filter((x) => x.id !== t.id); tSave(); tModalClose(); } };
+    $("tmTitle").addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
+    setTimeout(() => { if (!t) $("tmTitle").focus(); }, 320);
+  }
+
+  function tProjectEditor(id) {
+    const pr = id ? tdb.projects.find((x) => x.id === id) : null;
+    const areas = [...new Set(tdb.projects.map((x) => x.area).filter(Boolean))];
+    tModalOpen(`
+      <input class="t-input big" id="tpName" placeholder="Nuevo proyecto" value="${esc(pr?.name || "")}" autocomplete="off">
+      <div class="t-field"><label>Área (por ejemplo, Familia o Trabajo)</label><input class="t-input" id="tpArea" list="tpAreas" placeholder="Sin área" value="${esc(pr?.area || "")}" autocomplete="off"><datalist id="tpAreas">${areas.map((a) => `<option value="${esc(a)}">`).join("")}</datalist></div>
+      <div class="t-actions">${pr ? `<button class="t-btn danger" id="tpDel">Eliminar</button>` : ""}<button class="t-btn" id="tpCancel">Cancelar</button><button class="t-btn primary" id="tpSave">Guardar</button></div>`);
+    const save = () => {
+      const name = $("tpName").value.trim();
+      if (!name) { $("tpName").focus(); return; }
+      const area = $("tpArea").value.trim();
+      if (pr) { pr.name = name; pr.area = area; } else tdb.projects.push({ id: tid(), name, area });
+      tSave(); tModalClose();
+    };
+    $("tpSave").onclick = save;
+    $("tpCancel").onclick = tModalClose;
+    $("tpName").addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
+    if (pr) $("tpDel").onclick = () => {
+      if (!confirm("¿Eliminar el proyecto y todas sus tareas?")) return;
+      tdb.tasks = tdb.tasks.filter((x) => x.project !== pr.id);
+      tdb.projects = tdb.projects.filter((x) => x.id !== pr.id);
+      tSave(); tv.view = "home"; tModalClose();
+    };
+    setTimeout(() => { if (!pr) $("tpName").focus(); }, 320);
+  }
+
+  function tMore() {
+    if (tv.view.startsWith("project:")) return tProjectEditor(tv.view.slice(8));
+    if (tv.view === "logbook" && confirm("¿Vaciar el registro? Se borrarán las tareas completadas.")) {
+      tdb.tasks = tdb.tasks.filter((t) => t.status !== "done"); tSave(); tRender();
+    }
+  }
+
+  function tBackup() {
+    const txt = JSON.stringify(tdb);
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(() => alert("Copia guardada en el portapapeles. Pégala en un lugar seguro (Notas, por ejemplo)."), () => prompt("Copia esta copia de seguridad:", txt));
+    else prompt("Copia esta copia de seguridad:", txt);
+  }
+  function tRestore() {
+    const txt = prompt("Pega aquí tu copia de seguridad");
+    if (!txt) return;
+    try {
+      const d = JSON.parse(txt);
+      if (!Array.isArray(d.tasks)) throw new Error("formato");
+      if (!confirm(`Se reemplazarán tus tareas actuales por ${d.tasks.length} tareas de la copia. ¿Seguir?`)) return;
+      tdb.tasks = d.tasks; tdb.projects = Array.isArray(d.projects) ? d.projects : []; tdb.collapsed = d.collapsed || {};
+      tSave(); tRender();
+    } catch { alert("Esa copia de seguridad no es válida."); }
+  }
+
+  // ---- wiring ----
+  $("tasksApp").addEventListener("click", (e) => {
+    const q = (sel) => e.target.closest(sel);
+    let el;
+    if ((el = q("[data-go]"))) return tGo(el.dataset.go);
+    if ((el = q("[data-check]"))) return tCheck(el.dataset.check, el);
+    if ((el = q("[data-edit]"))) return tEditor(el.dataset.edit);
+    if ((el = q("[data-area]"))) { tdb.collapsed[el.dataset.area] = !tdb.collapsed[el.dataset.area]; tSave(); return tRender(); }
+    if (q("[data-back]")) return tGo("home");
+    if (q("[data-more]")) return tMore();
+    if (q("#tFab")) return tNew();
+    if (q("[data-newproj]")) return tProjectEditor(null);
+    if (q("[data-backup]")) return tBackup();
+    if (q("[data-restore]")) return tRestore();
+  });
+  $("tasksApp").addEventListener("input", (e) => {
+    if (e.target.id === "tSearch") { tv.q = e.target.value; $("tHomeBody").innerHTML = tHomeBody(); }
+  });
+
+  // Tiempo | Tareas
+  function setView(v) {
+    const tasks = v === "tasks";
+    $("app").hidden = tasks;
+    $("tasksApp").hidden = !tasks;
+    document.documentElement.classList.toggle("in-tasks", tasks);
+    window.scrollTo(0, 0);
+    if (tasks) {
+      tv.view = "home"; tv.q = "";
+      tRender();
+      try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch {} // ask the phone not to wipe the tasks
+    }
+  }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-view]");
+    if (b) setView(b.dataset.view);
+  });
 
   /* ---------- data ---------- */
   async function fetchWeather(lat, lon) {

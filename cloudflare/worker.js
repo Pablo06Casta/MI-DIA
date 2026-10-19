@@ -39,15 +39,21 @@ export default {
   async scheduled(event, env, ctx) {
     if (!env.MIDIA) return;
     const { keys } = await env.MIDIA.list({ prefix: "sub:" });
+    const report = { t: Date.now(), subs: {} }; // what happened, so the app can show it in Settings
     for (const { name } of keys) {
       const sub = await env.MIDIA.get(name, "json");
       if (!sub) continue;
+      const log = [];
       try {
-        const next = await checkAlerts(env, sub);
-        if (next === "gone") await env.MIDIA.delete(name);
+        const next = await checkAlerts(env, sub, log);
+        if (next === "gone") { await env.MIDIA.delete(name); log.push("móvil desinstalado: suscripción borrada"); }
         else if (next) await env.MIDIA.put(name, JSON.stringify(next));
-      } catch {}
+      } catch (e) {
+        log.push("error: " + String(e?.message || e).slice(0, 120));
+      }
+      report.subs[name] = log;
     }
+    await env.MIDIA.put("cron:last", JSON.stringify(report));
   },
 };
 
@@ -253,6 +259,17 @@ async function push(request, env, origin, cors, path) {
     await env.MIDIA.put(id, JSON.stringify(sub));
     return json({ ok: true });
   }
+  if (path === "/push/status") {
+    const sub = await env.MIDIA.get(id, "json");
+    const cron = await env.MIDIA.get("cron:last", "json");
+    return json({
+      subscribed: !!sub,
+      coldHour: sub?.coldHour || null,
+      lastRain: sub?.lastRain || null,
+      cronLast: cron?.t || null,
+      log: cron?.subs?.[id] || null,
+    });
+  }
   if (path === "/push/test") {
     const sub = await env.MIDIA.get(id, "json");
     if (!sub) return json({ error: "no suscrito" }, 404);
@@ -274,7 +291,7 @@ const RAIN_EVERY = 3 * 3600 * 1000; // como mucho un aviso de lluvia cada 3 hora
 const WET = 0.1;                      // mm en 15 minutos
 
 // Devuelve la suscripción actualizada si ha enviado algo, "gone" si el móvil ya no existe, o null.
-async function checkAlerts(env, sub) {
+async function checkAlerts(env, sub, log = []) {
   const local = localNow(sub.tz);
   let changed = null;
   const send = async (msg) => {
@@ -284,9 +301,11 @@ async function checkAlerts(env, sub) {
   };
   try {
     // 1) lluvia en unos 30 minutos (solo de 7:00 a 23:00)
-    if (local.hour >= 7 && local.hour < 23 && Date.now() - (sub.lastRain || 0) > RAIN_EVERY) {
-      const msg = await rainAlert(sub);
-      if (msg && await send(msg)) changed = { ...(changed || sub), lastRain: Date.now() };
+    if (local.hour < 7 || local.hour >= 23) log.push("lluvia: fuera de horario (7:00–23:00)");
+    else if (Date.now() - (sub.lastRain || 0) <= RAIN_EVERY) log.push("lluvia: ya avisó hace menos de 3 h");
+    else {
+      const msg = await rainAlert(sub, log);
+      if (msg && await send(msg)) { changed = { ...(changed || sub), lastRain: Date.now() }; log.push("lluvia: aviso enviado"); }
     }
     // 2) la noche antes: ¿mañana baja mucho la temperatura?
     const [h, m] = (sub.coldHour || "21:00").split(":").map(Number);
@@ -294,6 +313,7 @@ async function checkAlerts(env, sub) {
     if (inWindow && sub.lastCold !== local.date) {
       const msg = await coldAlert(sub);
       if (msg) await send(msg);
+      log.push(msg ? "frío: aviso enviado" : "frío: mañana no baja mucho, sin aviso");
       changed = { ...(changed || sub), lastCold: local.date };
     }
   } catch (e) {
@@ -307,16 +327,19 @@ async function forecast(sub, params) {
   return fetch(`https://api.open-meteo.com/v1/forecast?latitude=${sub.lat}&longitude=${sub.lon}&${params}&timezone=${encodeURIComponent(sub.tz)}`).then((r) => r.json());
 }
 
-// "Empieza a llover en 30 min": seco ahora y en 15 min, y lluvia en el tramo que empieza dentro de 30 min.
+// "Empieza a llover en 30 min": seco ahora y lluvia en el tramo que empieza dentro de 30 min.
+// Si la previsión cambia y la lluvia aparece ya a 15 min, avisa igualmente (mejor tarde que nunca).
 // Como el puente mira cada 15 minutos, si la lluvia llega más tarde se avisa en una vuelta posterior.
-async function rainAlert(sub) {
+async function rainAlert(sub, log = []) {
   const w = await forecast(sub, "minutely_15=precipitation&forecast_minutely_15=4");
   const p = w.minutely_15?.precipitation || [];
-  if (p.length < 4 || p[0] >= WET || p[1] >= WET || p[2] < WET) return null;
-  const k = 2;
+  log.push("lluvia prevista (mm cada 15 min): " + p.map((x) => x.toFixed(1)).join(" · "));
+  if (p.length < 4 || p[0] >= WET) return null;
+  const k = p[1] >= WET ? 1 : p[2] >= WET ? 2 : -1;
+  if (k < 0) return null;
   const startsAt = new Date(w.minutely_15.time[k] + "Z").getTime() - (w.utc_offset_seconds || 0) * 1000;
-  const mins = Math.min(30, Math.max(20, Math.round((startsAt - Date.now()) / 300000) * 5));
-  const mmh = p[2] * 4;
+  const mins = Math.min(30, Math.max(5, Math.round((startsAt - Date.now()) / 300000) * 5));
+  const mmh = p[k] * 4;
   const kind = mmh < 2 ? "lluvia débil" : mmh < 8 ? "lluvia moderada" : "lluvia fuerte";
   return {
     title: `Va a llover${sub.place ? ` en ${sub.place}` : ""}`,

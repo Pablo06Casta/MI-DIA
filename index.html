@@ -294,6 +294,10 @@
   .sheet .status { font-size: 14px; margin-top: 10px; min-height: 20px; color: #9ff0d0; }
   .sheet .status.err { color: #ffb08a; }
   .push-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.06); font-size: 15px; }
+  .push-diag { margin-top: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(255,255,255,.05); font-size: 13px; line-height: 1.45; color: rgba(255,255,255,.75); }
+  .push-diag b { color: #fff; }
+  .push-diag .warn { color: #ffb08a; }
+  .push-diag ul { margin: 6px 0 0 16px; color: var(--muted); }
   .push-row input { font: inherit; font-size: 17px; font-weight: 600; color: #fff; background: none; border: 0; color-scheme: dark; }
 
   [hidden] { display: none !important; }
@@ -552,6 +556,7 @@
     <input type="time" id="pushHour" value="21:00">
   </div>
   <div class="status" id="pushStatus"></div>
+  <div class="push-diag" id="pushDiag" hidden></div>
   <div class="row">
     <button class="btn primary" id="pushToggle">Activar avisos</button>
     <button class="btn" id="pushTest" hidden>Enviar prueba</button>
@@ -1482,6 +1487,31 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
         : "Este navegador no permite avisos.", true);
       $("pushToggle").disabled = true;
     } else pushStatus(p.on ? "Avisos activados." : "");
+    pushDiagnose();
+  }
+
+  // Asks the bridge when it last checked the weather for this phone and what it saw
+  async function pushDiagnose() {
+    const box = $("pushDiag");
+    if (!readPush().on || !CAL_PROXY) { box.hidden = true; return; }
+    try {
+      const sub = await currentSub();
+      if (!sub) { box.hidden = true; return; }
+      const st = await pushPost("status", { endpoint: sub.endpoint });
+      const ago = st.cronLast ? Math.round((Date.now() - st.cronLast) / 60000) : null;
+      let html;
+      if (!st.subscribed) html = `<span class="warn">Este móvil no está registrado en el puente.</span> Desactiva y vuelve a activar los avisos.`;
+      else if (ago === null) html = `<span class="warn">El puente todavía no ha comprobado nada.</span> Falta activar el Cron en Cloudflare: Settings → Triggers → Cron Triggers → <b>*/15 * * * *</b>.`;
+      else if (ago > 35) html = `<span class="warn">Última comprobación hace ${ago} min.</span> El Cron de Cloudflare parece parado.`;
+      else html = `<b>✓ Funcionando.</b> Última comprobación hace ${ago <= 1 ? "1 min" : ago + " min"}.`;
+      if (st.log?.length) html += `<ul>${st.log.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`;
+      if (st.lastRain) html += `<div style="margin-top:6px">Último aviso de lluvia: ${new Date(st.lastRain).toLocaleString("es-ES", { weekday: "short", hour: "2-digit", minute: "2-digit" })}</div>`;
+      box.innerHTML = html;
+      box.hidden = false;
+    } catch {
+      box.innerHTML = `<span class="warn">No he podido preguntar al puente.</span> Puede que falte pegar el código nuevo en Cloudflare.`;
+      box.hidden = false;
+    }
   }
 
   $("pushToggle").onclick = async () => {

@@ -334,8 +334,13 @@
   /* ===== Tareas (estilo Things) ===== */
   html.in-tasks body { background: #fff !important; }
   .tasks-app { max-width: 520px; margin: 0 auto; min-height: 100vh; background: #fff; color: #1c1c1e; position: relative; }
-  .t-band { height: calc(env(safe-area-inset-top) + 66px); background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom)); display: flex; align-items: flex-start; justify-content: center; padding-top: calc(env(safe-area-inset-top) + 12px); }
-  .t-sheet { position: relative; margin-top: -22px; background: #fff; border-radius: 26px 26px 0 0; min-height: calc(100vh - env(safe-area-inset-top) - 44px); padding: 20px 20px 130px; }
+  /* all white; the only dark bit is the strip behind the iPhone clock, whose text is always white in this kind of app */
+  .t-band { position: relative; height: calc(env(safe-area-inset-top) + 62px); background: #fff; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; }
+  .t-band::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: env(safe-area-inset-top); background: #000; }
+  .viewbar.light { background: #f0f0f3; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .viewbar.light button { color: #55555b; }
+  .viewbar.light button.on { background: #111; color: #fff; }
+  .t-sheet { position: relative; background: #fff; min-height: calc(100vh - env(safe-area-inset-top) - 62px); padding: 8px 20px 130px; }
   .t-search { display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px; border-radius: 14px; background: #eeeef0; color: #8e8e93; }
   .t-search svg { width: 18px; height: 18px; flex: none; }
   .t-search input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: 16px; color: #1c1c1e; outline: none; }
@@ -655,7 +660,7 @@
 
 <div class="tasks-app" id="tasksApp" hidden>
   <div class="t-band">
-    <div class="viewbar" role="tablist" aria-label="Sección">
+    <div class="viewbar light" role="tablist" aria-label="Sección">
       <button data-view="weather" role="tab" aria-selected="false">Tiempo</button>
       <button data-view="tasks" class="on" role="tab" aria-selected="true">Tareas</button>
     </div>
@@ -2291,6 +2296,8 @@ Responde solo con las 3 sugerencias, una por línea, sin numeración ni guiones.
     $("app").hidden = tasks;
     $("tasksApp").hidden = !tasks;
     document.documentElement.classList.toggle("in-tasks", tasks);
+    const tc = document.querySelector('meta[name="theme-color"]');
+    if (tasks) { setView.prev = tc.content; tc.content = "#ffffff"; } else if (setView.prev) { tc.content = setView.prev; }
     window.scrollTo(0, 0);
     if (tasks) {
       tv.view = "home"; tv.q = "";

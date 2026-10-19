@@ -325,10 +325,8 @@
     100% { transform: none; }
   }
   .pet-sprite img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; }
-  .pet-lid, .pet-shades { position: absolute; display: none; transform: translate(-50%, -50%); }
-  .pet-lid { width: 9%; height: 4%; background: #9b5a30; border-bottom: 1px solid #2a1a10; border-radius: 50% 50% 40% 40%; }
-  .pet-shades { height: 6%; transform: translateY(-50%); background: #111; border-radius: 2px 2px 40% 40%; }
-  .pet-sprite[data-frame="sleep"] .pet-lid, .pet-sprite[data-frame="cool"] .pet-shades { display: block; }
+  .pet-shades { position: absolute; display: none; height: 6%; transform: translateY(-50%); background: #111; border-radius: 2px 2px 40% 40%; }
+  .pet-sprite[data-frame="cool"] .pet-shades { display: block; }
   .pet { transition: opacity .7s ease; }
   .pet.inside { opacity: 0; pointer-events: none; }
   .pet.inside .pet-sprite { pointer-events: none; }
@@ -340,8 +338,6 @@
   .pet-house .pet-bubble { left: 31px; bottom: 92px; }
   .pet-umbrella { position: absolute; left: 3px; bottom: 36px; width: 42px; height: 33px; display: none; }
   .pet.rainy .pet-umbrella { display: block; }
-  .pet-zz { position: absolute; left: 34px; bottom: 34px; font: 700 12px/1 ui-monospace, Menlo, monospace; color: #fff; display: none; text-shadow: 0 1px 4px rgba(0,0,0,.3); }
-  .pet.sleeping .pet-zz { display: block; animation: petZz 2.4s ease-in-out infinite; }
   @keyframes petZz { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(10px, -14px); } }
   .pet-bubble {
     position: absolute; left: 50%; bottom: 58px; transform: translate(-50%, 6px) scale(.9); opacity: 0;
@@ -355,7 +351,7 @@
   .pet.rainy .pet-bubble { bottom: 74px; }
 
   @media (prefers-reduced-motion: reduce) {
-    .drift, .drop, .flake, .flash, .twinkle, .pet-sprite, .pet-zz { animation: none !important; }
+    .drift, .drop, .flake, .flash, .twinkle, .pet-sprite { animation: none !important; }
   }
 </style>
 </head>
@@ -911,11 +907,10 @@
       colors: { k: "#2b2b2e", g: "#a3a3a8", d: "#6d6d73", l: "#cfcfd4", w: "#f6f6f8", p: "#f6a9b6", s: "#1a1a1d", h: "#5c5c66" },
       frames: {
         happy: ALVIN_BASE,
-        sleep: withRows(ALVIN_BASE, { 5: ".kggggggggggggk.", 6: ".kgkkkgwwgkkkgk." }),
         cool: withRows(ALVIN_BASE, { 5: ".kskkkkkkkkkskk.", 6: ".kssshgwwgsshsk." }),
       },
       lines: {
-        night: ["Zzz… miau", "Miau… déjame dormir", "Prrr… zzz"],
+        night: ["¡Miau! Aún no es hora de dormir", "¡Un ratito más de juego!", "Miau, a las 12 a la cama"],
         rain: ["¡Miau! Coge el paraguas", "Odio mojarme… miau", "¡Llueve, miau!"],
         snow: ["¡Miau! ¡Nieve!", "Tengo las patitas frías"],
         hot: ["Miau, qué calorcito", "Aquí al solecito… prrr"],
@@ -928,7 +923,7 @@
       // your own picture of Zogli; eyes in % of the picture (to close them or add sunglasses)
       image: "pets/zogli.png", eyes: [[43.8, 38.5], [69.8, 38.5]],
       lines: {
-        night: ["Zzz… guau", "Grr… zzz", "Guau… a dormir", "Soñando con huesos… zzz"],
+        night: ["¡Guau! ¡Un ratito más!", "¡A las 12 a la camita, guau!", "¡Guau! ¿Jugamos a perseguir?"],
         rain: ["¡Guau! ¡Paraguas!", "No me quiero mojar el pelo", "¡Guau, cuánta agua!", "Hoy paseo cortito, ¿vale?", "¡Charcos! ¡Guau!"],
         snow: ["¡Guau! ¡Nieve!", "¡A jugar con la nieve!", "¡Guau! ¡Tengo frío en las patitas!"],
         hot: ["Guau, qué calor…", "¿Me das agüita?", "Busco sombrita, guau", "Jadeo… guau"],
@@ -958,6 +953,7 @@
   const umbrellaSVG = pixelSVG(UMBRELLA, { k: "#2b2b2e", h: "#ffd36e" });
   let petsMoodNow = { kind: "clear", isDay: true, temp: 18 };
   let petsLayerVisible = true, petsRaf = 0, petsLast = 0, petsMeetAt = 0;
+  let play = null, playNext = 0; // a game of chase: { chaser, runner, until }
 
   // From 00:00 to 08:00 Alvin and Zogli sleep inside their house
   const HOUSE = { w: 110, visible: 55, door: 31 }; // px; door = centre of the door from the house's left edge
@@ -994,7 +990,7 @@
     el.style.zIndex = 2 + idx;
     el.innerHTML = `<div class="pet-bubble"></div>
       <div class="pet-flip"><div class="pet-shadow"></div><div class="pet-umbrella">${umbrellaSVG}</div>
-      <div class="pet-sprite"></div><div class="pet-zz">z<sup>z</sup></div></div>`;
+      <div class="pet-sprite"></div></div>`;
     $("pets").appendChild(el);
     const sprite = el.querySelector(".pet-sprite");
     sprite.style.width = def.w + "px";
@@ -1002,15 +998,11 @@
     const umb = el.querySelector(".pet-umbrella");
     umb.style.left = (def.w - 42) / 2 + "px";
     umb.style.bottom = def.h - 9 + "px";
-    const zz = el.querySelector(".pet-zz");
-    zz.style.left = def.w - 14 + "px";
-    zz.style.bottom = def.h - 11 + "px";
     const pet = { ...def, el, sprite, bubble: el.querySelector(".pet-bubble"), inside: false, placed: false,
       dir: idx % 2 ? -1 : 1, baseSpeed: def.speed, mode: "walk", state: "walk", until: 0, frame: "" };
     el.addEventListener("click", () => {
       petJump(pet);
       petSay(pet, petLine(pet));
-      if (pet.mode === "sleep") { el.classList.remove("sleeping"); petFrame(pet, "happy"); setTimeout(() => petMood(pet), 2600); }
     });
     petFrame(pet, "happy");
     return pet;
@@ -1022,9 +1014,7 @@
     if (!pet.image) { pet.sprite.innerHTML = pixelSVG(pet.frames[name], pet.colors); return; }
     if (!pet.sprite.firstChild) {
       const [[lx, ly], [rx, ry]] = pet.eyes;
-      const lid = (x, y) => `<i class="pet-lid" style="left:${x}%;top:${y}%"></i>`;
       pet.sprite.innerHTML = `<img src="${pet.image}" alt="" draggable="false">` +
-        lid(lx, ly) + lid(rx, ry) +
         `<i class="pet-shades" style="left:${lx - 7}%;width:${rx - lx + 14}%;top:${(ly + ry) / 2}%"></i>`;
     }
     pet.sprite.dataset.frame = name;
@@ -1056,14 +1046,15 @@
   function petMood(pet) {
     const { kind, isDay, temp } = petsMoodNow;
     const wet = kind === "rain" || kind === "storm";
-    pet.mode = homeNow ? "home" : !isDay ? "sleep" : (temp >= 28 && (kind === "clear" || kind === "partly")) ? "sun" : "walk";
+    // outside the house they are always awake and playing (with sunglasses when it's hot and sunny)
+    pet.mode = homeNow ? "home" : "walk";
+    const sunny = isDay && temp >= 28 && (kind === "clear" || kind === "partly");
     // opening the app at night: they are already inside, no need to watch them walk in
     if (!pet.placed) { pet.placed = true; if (homeNow) petEnter(pet); }
     pet.speed = pet.baseSpeed * (wet ? 1.6 : 1);
-    pet.el.classList.toggle("rainy", wet && pet.mode !== "sleep");
-    pet.bubble.style.bottom = pet.h + (wet && pet.mode !== "sleep" ? 34 : 12) + "px";
-    pet.el.classList.toggle("sleeping", pet.mode === "sleep");
-    petFrame(pet, pet.mode === "sleep" ? "sleep" : pet.mode === "sun" ? "cool" : "happy");
+    pet.el.classList.toggle("rainy", wet);
+    pet.bubble.style.bottom = pet.h + (wet ? 34 : 12) + "px";
+    petFrame(pet, sunny ? "cool" : "happy");
     if (pet.mode !== "walk") { pet.state = "sit"; pet.el.classList.remove("walking"); }
     else if (pet.state !== "walk") { pet.state = "walk"; pet.until = 0; }
   }
@@ -1089,7 +1080,7 @@
   function petLine(pet) {
     const { kind, isDay, temp } = petsMoodNow;
     const L = pet.lines;
-    const list = !isDay ? L.night : (kind === "rain" || kind === "storm") ? L.rain : kind === "snow" ? L.snow
+    const list = (kind === "rain" || kind === "storm") ? L.rain : kind === "snow" ? L.snow : !isDay ? L.night
       : temp >= 28 ? L.hot : temp < 10 ? L.cold : L.any;
     return list[Math.floor(Math.random() * list.length)];
   }
@@ -1115,7 +1106,15 @@
         pet.el.style.transform = `translateX(${pet.x.toFixed(1)}px)`;
         return;
       }
-      if (pet.mode === "walk" && !reduceMotion) {
+      if (play && (play.chaser === pet || play.runner === pet)) {
+        const other = play.chaser === pet ? play.runner : play.chaser;
+        const toward = Math.sign(other.x - pet.x) || 1;
+        pet.dir = play.chaser === pet ? toward : -toward;
+        pet.x += pet.dir * pet.baseSpeed * (play.chaser === pet ? 2.4 : 2) * dt;
+        if (pet.x > max) { pet.x = max; if (play.runner === pet) pet.dir = -1; }
+        if (pet.x < 0) { pet.x = 0; if (play.runner === pet) pet.dir = 1; }
+        pet.state = "walk";
+      } else if (pet.mode === "walk" && !reduceMotion) {
         if (t > pet.until) {
           // every few seconds: keep walking, stop to sit for a moment, or jump
           const r = Math.random();
@@ -1135,9 +1134,32 @@
       pet.el.classList.toggle("left", pet.dir < 0);
       pet.el.style.transform = `translateX(${pet.x.toFixed(1)}px)`;
     });
-    // when Alvin and Zogli meet they say hello
     const [a, b] = pets;
-    if (a.mode === "walk" && b.mode === "walk" && !a.inside && !b.inside && Math.abs(a.x - b.x) < 26 && t > petsMeetAt) {
+    // games: start a chase every 12–25 s; it ends when the chaser catches the runner (or gives up)
+    const canPlay = a.mode === "walk" && b.mode === "walk" && !a.inside && !b.inside && !reduceMotion;
+    if (!play && canPlay && t > playNext && playNext) {
+      const chaser = Math.random() < 0.5 ? a : b;
+      play = { chaser, runner: chaser === a ? b : a, until: t + 6000 };
+      petJump(chaser);
+      petSay(chaser, chaser === b ? "¡Guau! ¡Que te pillo!" : "¡Miau! ¡Te voy a pillar!");
+      chaser.state = "walk"; play.runner.state = "walk";
+    }
+    if (!playNext) playNext = t + 8000;
+    if (play) {
+      const caught = Math.abs(play.chaser.x - play.runner.x) < 18;
+      if (caught || t > play.until || !canPlay) {
+        if (caught) {
+          petJump(play.chaser); petJump(play.runner);
+          petSay(play.chaser, play.chaser === b ? "¡Pillado! ¡Guau!" : "¡Pillado! Miau");
+        }
+        play.chaser.until = play.runner.until = t + 2500;
+        play = null;
+        playNext = t + 12000 + Math.random() * 13000;
+        petsMeetAt = t + 15000;
+      }
+    }
+    // when Alvin and Zogli meet they say hello
+    if (!play && a.mode === "walk" && b.mode === "walk" && !a.inside && !b.inside && Math.abs(a.x - b.x) < 26 && t > petsMeetAt) {
       petsMeetAt = t + 25000;
       petJump(a); petJump(b);
       petSay(b, "¡Guau! ¡Hola, Alvin!");
